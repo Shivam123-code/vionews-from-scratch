@@ -18,27 +18,30 @@ export function useAuth() {
   });
 
   useEffect(() => {
+    let cancelled = false;
+
+    const resolveAdmin = async (userId: string) => {
+      try {
+        const { data, error } = await supabase.rpc('is_admin', { _user_id: userId });
+        if (error) return false;
+        return data ?? false;
+      } catch {
+        return false;
+      }
+    };
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         const user = session?.user ?? null;
         
         if (user) {
-          // Check if user is admin using security definer function
-          const { data: isAdmin } = await supabase.rpc('is_admin', { _user_id: user.id });
-          setAuthState({
-            user,
-            session,
-            isAdmin: isAdmin ?? false,
-            isLoading: false,
-          });
+          const isAdmin = await resolveAdmin(user.id);
+          if (cancelled) return;
+          setAuthState({ user, session, isAdmin, isLoading: false });
         } else {
-          setAuthState({
-            user: null,
-            session: null,
-            isAdmin: false,
-            isLoading: false,
-          });
+          if (cancelled) return;
+          setAuthState({ user: null, session: null, isAdmin: false, isLoading: false });
         }
       }
     );
@@ -48,24 +51,17 @@ export function useAuth() {
       const user = session?.user ?? null;
       
       if (user) {
-        const { data: isAdmin } = await supabase.rpc('is_admin', { _user_id: user.id });
-        setAuthState({
-          user,
-          session,
-          isAdmin: isAdmin ?? false,
-          isLoading: false,
-        });
+        const isAdmin = await resolveAdmin(user.id);
+        if (cancelled) return;
+        setAuthState({ user, session, isAdmin, isLoading: false });
       } else {
-        setAuthState({
-          user: null,
-          session: null,
-          isAdmin: false,
-          isLoading: false,
-        });
+        if (cancelled) return;
+        setAuthState({ user: null, session: null, isAdmin: false, isLoading: false });
       }
     });
 
     return () => {
+      cancelled = true;
       subscription.unsubscribe();
     };
   }, []);
@@ -74,7 +70,9 @@ export function useAuth() {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/admin`,
+        // Use a dedicated callback route to reliably finalize the session
+        // before hitting protected routes.
+        emailRedirectTo: `${window.location.origin}/admin/callback`,
       },
     });
     return { error };
