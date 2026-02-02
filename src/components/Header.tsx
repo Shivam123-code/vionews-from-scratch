@@ -10,7 +10,7 @@ const categories = [
   { name: "Entertainment", href: "/category/entertainment" },
   { name: "Sports", href: "/category/sports" },
   { name: "Science", href: "/category/science" },
-  { name: "Tech", href: "/category/tech" },
+  { name: "Technology", href: "/category/tech" },
 ];
 
 export function Header() {

@@ -40,9 +40,26 @@ Deno.serve(async (req) => {
     }
 
     const url = new URL(req.url);
-    const category = url.searchParams.get('category') || '';
+    let category = url.searchParams.get('category') || '';
     const query = url.searchParams.get('q') || '';
     const page = url.searchParams.get('page') || '';
+
+    // Map frontend categories to NewsData.io supported categories
+    const categoryMap: Record<string, string> = {
+      'tech': 'technology',
+      'science': 'science',
+      'world': 'world',
+      'business': 'business',
+      'entertainment': 'entertainment',
+      'sports': 'sports',
+      'politics': 'politics',
+      'health': 'health',
+    };
+    
+    // Apply category mapping
+    if (category && categoryMap[category.toLowerCase()]) {
+      category = categoryMap[category.toLowerCase()];
+    }
 
     // Build NewsData.io API URL - focusing on world/international news
     let apiUrl = `https://newsdata.io/api/1/latest?apikey=${apiKey}&language=en`;
