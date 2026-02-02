@@ -3,10 +3,12 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { TrendingNews } from "@/components/TrendingNews";
 import { Link } from "react-router-dom";
-import { articles } from "@/data/articles";
+import { useNews } from "@/hooks/useNews";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function LiveTVPage() {
-  const latestNews = articles.slice(0, 5);
+  const { data: articles, isLoading } = useNews();
+  const latestNews = (articles || []).slice(0, 5);
 
   return (
     <div className="min-h-screen bg-background">
@@ -92,23 +94,38 @@ export default function LiveTVPage() {
             <div className="news-card p-6">
               <h2 className="font-display text-xl font-bold mb-4">Latest Headlines</h2>
               <div className="space-y-4">
-                {latestNews.map((article, index) => (
-                  <Link
-                    key={article.id}
-                    to={`/article/${article.slug}`}
-                    className="flex items-start gap-4 group"
-                  >
-                    <span className="font-display text-2xl font-bold text-primary/30 group-hover:text-primary transition-colors">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                    <div>
-                      <h3 className="font-medium group-hover:text-primary transition-colors line-clamp-2">
-                        {article.title}
-                      </h3>
-                      <p className="text-sm text-muted-foreground mt-1">{article.time}</p>
+                {isLoading ? (
+                  [...Array(5)].map((_, i) => (
+                    <div key={i} className="flex items-start gap-4">
+                      <Skeleton className="w-8 h-8" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-3 w-20" />
+                      </div>
                     </div>
-                  </Link>
-                ))}
+                  ))
+                ) : latestNews.length > 0 ? (
+                  latestNews.map((article, index) => (
+                    <Link
+                      key={article.id}
+                      to={`/article/${article.slug}`}
+                      state={{ article }}
+                      className="flex items-start gap-4 group"
+                    >
+                      <span className="font-display text-2xl font-bold text-primary/30 group-hover:text-primary transition-colors">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <div>
+                        <h3 className="font-medium group-hover:text-primary transition-colors line-clamp-2">
+                          {article.title}
+                        </h3>
+                        <p className="text-sm text-muted-foreground mt-1">{article.time}</p>
+                      </div>
+                    </Link>
+                  ))
+                ) : (
+                  <p className="text-muted-foreground">No headlines available</p>
+                )}
               </div>
             </div>
           </div>
