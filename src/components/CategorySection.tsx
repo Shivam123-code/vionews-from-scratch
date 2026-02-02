@@ -1,76 +1,38 @@
+import { Link } from "react-router-dom";
 import { Clock } from "lucide-react";
-
-interface CategoryArticle {
-  id: string;
-  title: string;
-  time: string;
-  image: string;
-}
+import { getArticlesByCategory, getCategoryColor, Article } from "@/data/articles";
 
 interface CategorySectionProps {
   title: string;
+  slug: string;
   color: string;
-  articles: CategoryArticle[];
+  articles: Article[];
 }
 
-const worldNews: CategoryArticle[] = [
-  {
-    id: "w1",
-    title: "Peace negotiations reach critical phase in ongoing regional conflict",
-    time: "1 hour ago",
-    image: "https://images.unsplash.com/photo-1495020689067-958852a7765e?w=400&h=300&fit=crop",
-  },
-  {
-    id: "w2",
-    title: "Trade agreement signed between major economic powers",
-    time: "2 hours ago",
-    image: "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=400&h=300&fit=crop",
-  },
-  {
-    id: "w3",
-    title: "Historic preservation efforts save endangered cultural site",
-    time: "3 hours ago",
-    image: "https://images.unsplash.com/photo-1569974507005-6dc61f97fb5c?w=400&h=300&fit=crop",
-  },
-];
-
-const businessNews: CategoryArticle[] = [
-  {
-    id: "b1",
-    title: "Startup valued at billions following latest funding round",
-    time: "30 min ago",
-    image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400&h=300&fit=crop",
-  },
-  {
-    id: "b2",
-    title: "Retail sector shows strong recovery in quarterly report",
-    time: "1 hour ago",
-    image: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400&h=300&fit=crop",
-  },
-  {
-    id: "b3",
-    title: "Energy prices stabilize after period of volatility",
-    time: "2 hours ago",
-    image: "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=400&h=300&fit=crop",
-  },
-];
-
-function CategoryBlock({ title, color, articles }: CategorySectionProps) {
+function CategoryBlock({ title, slug, color, articles }: CategorySectionProps) {
   const mainArticle = articles[0];
-  const sideArticles = articles.slice(1);
+  const sideArticles = articles.slice(1, 3);
+
+  if (!mainArticle) return null;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <div className={`w-1 h-6 ${color} rounded-full`} />
         <h2 className="font-display text-xl font-bold">{title}</h2>
-        <a href="#" className="ml-auto text-primary text-sm font-medium hover:underline">
+        <Link
+          to={`/category/${slug}`}
+          className="ml-auto text-primary text-sm font-medium hover:underline"
+        >
           More →
-        </a>
+        </Link>
       </div>
       <div className="grid md:grid-cols-2 gap-4">
         {/* Main article */}
-        <article className="news-card group cursor-pointer">
+        <Link
+          to={`/article/${mainArticle.slug}`}
+          className="news-card group cursor-pointer block"
+        >
           <div className="aspect-[4/3] overflow-hidden">
             <img
               src={mainArticle.image}
@@ -87,12 +49,16 @@ function CategoryBlock({ title, color, articles }: CategorySectionProps) {
               {mainArticle.time}
             </div>
           </div>
-        </article>
+        </Link>
 
         {/* Side articles */}
         <div className="space-y-3">
           {sideArticles.map((article) => (
-            <article key={article.id} className="news-card group cursor-pointer">
+            <Link
+              to={`/article/${article.slug}`}
+              key={article.id}
+              className="news-card group cursor-pointer block"
+            >
               <div className="flex gap-4 p-3">
                 <div className="shrink-0 w-24 h-20 rounded-md overflow-hidden bg-muted">
                   <img
@@ -111,7 +77,7 @@ function CategoryBlock({ title, color, articles }: CategorySectionProps) {
                   </div>
                 </div>
               </div>
-            </article>
+            </Link>
           ))}
         </div>
       </div>
@@ -120,16 +86,21 @@ function CategoryBlock({ title, color, articles }: CategorySectionProps) {
 }
 
 export function CategorySection() {
+  const worldNews = getArticlesByCategory("world");
+  const businessNews = getArticlesByCategory("business");
+
   return (
     <section className="container py-8">
       <div className="grid lg:grid-cols-2 gap-8">
         <CategoryBlock
           title="World"
+          slug="world"
           color="bg-news-world"
           articles={worldNews}
         />
         <CategoryBlock
           title="Business"
+          slug="business"
           color="bg-news-business"
           articles={businessNews}
         />
