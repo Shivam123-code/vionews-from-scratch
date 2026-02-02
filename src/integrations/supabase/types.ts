@@ -14,13 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      articles: {
+        Row: {
+          author: string | null
+          author_role: string | null
+          category: string
+          category_slug: string
+          content: string | null
+          created_at: string
+          excerpt: string | null
+          id: string
+          image_url: string | null
+          published_at: string | null
+          slug: string
+          source_name: string | null
+          source_url: string | null
+          title: string
+          updated_at: string
+          views: string | null
+        }
+        Insert: {
+          author?: string | null
+          author_role?: string | null
+          category: string
+          category_slug: string
+          content?: string | null
+          created_at?: string
+          excerpt?: string | null
+          id: string
+          image_url?: string | null
+          published_at?: string | null
+          slug: string
+          source_name?: string | null
+          source_url?: string | null
+          title: string
+          updated_at?: string
+          views?: string | null
+        }
+        Update: {
+          author?: string | null
+          author_role?: string | null
+          category?: string
+          category_slug?: string
+          content?: string | null
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          image_url?: string | null
+          published_at?: string | null
+          slug?: string
+          source_name?: string | null
+          source_url?: string | null
+          title?: string
+          updated_at?: string
+          views?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      cleanup_old_articles: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never
