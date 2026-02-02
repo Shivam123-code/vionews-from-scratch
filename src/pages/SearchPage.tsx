@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import { Clock, Search, ExternalLink } from "lucide-react";
+import { Clock, Search } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { TrendingNews } from "@/components/TrendingNews";
@@ -25,10 +25,9 @@ function ArticleCard({ article }: { article: NewsArticle }) {
   const categoryColor = getCategoryColor(article.categorySlug);
 
   return (
-    <a
-      href={article.link || `/article/${article.slug}`}
-      target={article.link ? "_blank" : "_self"}
-      rel={article.link ? "noopener noreferrer" : undefined}
+    <Link
+      to={`/article/${article.slug}`}
+      state={{ article }}
       className="news-card group cursor-pointer block"
     >
       <div className="flex gap-4 p-4">
@@ -42,11 +41,6 @@ function ArticleCard({ article }: { article: NewsArticle }) {
                 "https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800&h=600&fit=crop";
             }}
           />
-          {article.link && (
-            <div className="absolute top-1 right-1 bg-black/50 p-1 rounded">
-              <ExternalLink className="h-3 w-3 text-white" />
-            </div>
-          )}
         </div>
         <div className="flex-1 min-w-0">
           <span className={`news-category-badge ${categoryColor} text-white mb-2`}>
@@ -67,7 +61,7 @@ function ArticleCard({ article }: { article: NewsArticle }) {
           </div>
         </div>
       </div>
-    </a>
+    </Link>
   );
 }
 
