@@ -6,7 +6,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import ArticlePage from "./pages/ArticlePage";
 import CategoryPage from "./pages/CategoryPage";
-import LiveTVPage from "./pages/LiveTVPage";
 import SearchPage from "./pages/SearchPage";
 import NotFound from "./pages/NotFound";
 
@@ -22,7 +21,6 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/article/:slug" element={<ArticlePage />} />
           <Route path="/category/:slug" element={<CategoryPage />} />
-          <Route path="/live-tv" element={<LiveTVPage />} />
           <Route path="/search" element={<SearchPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
