@@ -9,8 +9,7 @@ import { Mail, Loader2, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminLogin() {
-  const { user, isAdmin, isLoading } = useAuth();
-  const { signInWithMagicLink } = useAuth();
+  const { user, isAdmin, isLoading, signInWithMagicLink } = useAuth();
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
