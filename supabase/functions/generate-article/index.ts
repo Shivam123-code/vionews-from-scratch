@@ -53,59 +53,75 @@ Write a complete, professional news article expanding on this summary. Make it i
 
     console.log('Generating article content with AI...');
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        max_tokens: 1500,
-        temperature: 0.7,
-      }),
-    });
+    // Retry logic for transient errors
+    let lastError: Error | null = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            max_tokens: 1500,
+            temperature: 0.7,
+          }),
+        });
 
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ success: false, error: 'Rate limit exceeded. Please try again later.' }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        if (response.ok) {
+          const data = await response.json();
+          const generatedContent = data.choices?.[0]?.message?.content;
+
+          if (generatedContent) {
+            console.log('Article generated successfully');
+            return new Response(
+              JSON.stringify({ success: true, content: generatedContent }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+        }
+
+        if (response.status === 429) {
+          return new Response(
+            JSON.stringify({ success: false, error: 'Rate limit exceeded. Please try again later.' }),
+            { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        if (response.status === 402) {
+          return new Response(
+            JSON.stringify({ success: false, error: 'AI credits exhausted. Please add credits to continue.' }),
+            { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // For 5xx errors, retry
+        if (response.status >= 500 && attempt < 3) {
+          console.log(`Attempt ${attempt} failed with ${response.status}, retrying...`);
+          await new Promise(r => setTimeout(r, 1000 * attempt));
+          continue;
+        }
+
+        const errorText = await response.text();
+        console.error('AI gateway error:', response.status, errorText.substring(0, 200));
+        lastError = new Error(`AI gateway returned ${response.status}`);
+      } catch (err) {
+        console.error(`Attempt ${attempt} error:`, err);
+        lastError = err instanceof Error ? err : new Error(String(err));
+        if (attempt < 3) {
+          await new Promise(r => setTimeout(r, 1000 * attempt));
+        }
       }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ success: false, error: 'AI credits exhausted. Please add credits to continue.' }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      const errorText = await response.text();
-      console.error('AI gateway error:', response.status, errorText);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Failed to generate article' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
     }
-
-    const data = await response.json();
-    const generatedContent = data.choices?.[0]?.message?.content;
-
-    if (!generatedContent) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'No content generated' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log('Article generated successfully');
 
     return new Response(
-      JSON.stringify({ success: true, content: generatedContent }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ success: false, error: 'Failed to generate article after retries' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('Error generating article:', error);
