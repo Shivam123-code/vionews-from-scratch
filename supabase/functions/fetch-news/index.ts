@@ -24,6 +24,10 @@ interface NewsDataResponse {
   nextPage?: string;
 }
 
+// Simple in-memory cache to reduce API calls
+const cache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -61,6 +65,19 @@ Deno.serve(async (req) => {
       category = categoryMap[category.toLowerCase()];
     }
 
+    // Create cache key
+    const cacheKey = `${category}-${query}-${page}`;
+    
+    // Check cache first
+    const cached = cache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      console.log('Returning cached response');
+      return new Response(
+        JSON.stringify(cached.data),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Build NewsData.io API URL - focusing on world/international news
     let apiUrl = `https://newsdata.io/api/1/latest?apikey=${apiKey}&language=en`;
     
@@ -85,18 +102,31 @@ Deno.serve(async (req) => {
     console.log('Fetching news from NewsData.io');
 
     const response = await fetch(apiUrl);
-    const data: NewsDataResponse = await response.json();
+    const data = await response.json();
+
+    // Handle rate limiting specifically
+    if (response.status === 429 || data?.results?.code === 'RateLimitExceeded') {
+      console.error('Rate limit exceeded');
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Rate limit exceeded. Please wait a moment and try again.',
+          isRateLimited: true
+        }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (!response.ok || data.status !== 'success') {
       console.error('NewsData.io API error:', data);
       return new Response(
-        JSON.stringify({ success: false, error: 'Failed to fetch news' }),
+        JSON.stringify({ success: false, error: 'Failed to fetch news. Please try again.' }),
         { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     // Transform articles to our format
-    const articles = data.results?.map((article, index) => ({
+    const articles = (data.results as NewsDataArticle[])?.map((article: NewsDataArticle, index: number) => ({
       id: article.article_id || `news-${index}`,
       slug: article.article_id || `news-${index}`,
       title: article.title || 'Untitled',
@@ -116,13 +146,18 @@ Deno.serve(async (req) => {
 
     console.log(`Fetched ${articles.length} articles`);
 
+    const responseData = { 
+      success: true, 
+      articles,
+      nextPage: data.nextPage,
+      totalResults: data.totalResults
+    };
+
+    // Cache the successful response
+    cache.set(cacheKey, { data: responseData, timestamp: Date.now() });
+
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        articles,
-        nextPage: data.nextPage,
-        totalResults: data.totalResults
-      }),
+      JSON.stringify(responseData),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
