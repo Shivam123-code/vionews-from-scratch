@@ -22,8 +22,8 @@ export interface NewsArticle {
 interface NewsResponse {
   success: boolean;
   articles: NewsArticle[];
-  nextPage?: string;
   totalResults?: number;
+  hasMore?: boolean;
   error?: string;
 }
 
