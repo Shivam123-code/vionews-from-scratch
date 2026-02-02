@@ -1,5 +1,5 @@
 import { useParams, useLocation, Link } from "react-router-dom";
-import { Clock, ArrowLeft, Share2, Bookmark, Facebook, Twitter, ExternalLink } from "lucide-react";
+import { Clock, ArrowLeft, Share2, Bookmark, Facebook, Twitter } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { TrendingNews } from "@/components/TrendingNews";
@@ -43,15 +43,23 @@ export default function ArticlePage() {
 
   const categoryColor = getCategoryColor(article.categorySlug);
 
-  // Format content - split by sentences for better readability
-  const formatContent = (content: string) => {
-    if (content === "ONLY AVAILABLE IN PAID PLANS") {
-      return article.excerpt;
+  // Get the best available content
+  const getDisplayContent = () => {
+    // If we have real content (not the paid plan message), use it
+    if (article.content && article.content !== "ONLY AVAILABLE IN PAID PLANS") {
+      return article.content;
     }
-    return content;
+    // Otherwise use the excerpt which always has content
+    return article.excerpt;
   };
 
-  const displayContent = formatContent(article.content || article.excerpt);
+  const displayContent = getDisplayContent();
+
+  // Split content into paragraphs for better readability
+  const paragraphs = displayContent
+    .split(/\n+/)
+    .filter(p => p.trim())
+    .map(p => p.trim());
 
   return (
     <div className="min-h-screen bg-background">
@@ -70,8 +78,6 @@ export default function ArticlePage() {
           >
             {article.category}
           </Link>
-          <span className="text-muted-foreground">/</span>
-          <span className="text-foreground line-clamp-1">{article.title}</span>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
@@ -84,11 +90,9 @@ export default function ArticlePage() {
               {article.category}
             </Link>
 
-            <h1 className="news-headline text-3xl md:text-4xl lg:text-5xl mb-4">
+            <h1 className="news-headline text-3xl md:text-4xl lg:text-5xl mb-6">
               {article.title}
             </h1>
-
-            <p className="text-lg text-muted-foreground mb-6">{article.excerpt}</p>
 
             {/* Author and Meta */}
             <div className="flex items-center justify-between flex-wrap gap-4 pb-6 mb-6 border-b border-border">
@@ -100,7 +104,7 @@ export default function ArticlePage() {
                 </div>
                 <div>
                   <p className="font-medium">{article.source || article.author}</p>
-                  <p className="text-sm text-muted-foreground">{article.authorRole}</p>
+                  <p className="text-sm text-muted-foreground">News Source</p>
                 </div>
               </div>
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -108,7 +112,7 @@ export default function ArticlePage() {
                   <Clock className="h-4 w-4" />
                   {article.date}
                 </span>
-                <span>{article.views} views</span>
+                <span>{article.time}</span>
               </div>
             </div>
 
@@ -128,13 +132,22 @@ export default function ArticlePage() {
             {/* Share buttons */}
             <div className="flex items-center gap-3 mb-8">
               <span className="text-sm font-medium">Share:</span>
-              <button className="p-2 bg-secondary hover:bg-primary hover:text-primary-foreground rounded-full transition-colors">
+              <button 
+                onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`, '_blank')}
+                className="p-2 bg-secondary hover:bg-primary hover:text-primary-foreground rounded-full transition-colors"
+              >
                 <Facebook className="h-4 w-4" />
               </button>
-              <button className="p-2 bg-secondary hover:bg-primary hover:text-primary-foreground rounded-full transition-colors">
+              <button 
+                onClick={() => window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(article.title)}`, '_blank')}
+                className="p-2 bg-secondary hover:bg-primary hover:text-primary-foreground rounded-full transition-colors"
+              >
                 <Twitter className="h-4 w-4" />
               </button>
-              <button className="p-2 bg-secondary hover:bg-primary hover:text-primary-foreground rounded-full transition-colors">
+              <button 
+                onClick={() => navigator.share?.({ title: article.title, url: window.location.href })}
+                className="p-2 bg-secondary hover:bg-primary hover:text-primary-foreground rounded-full transition-colors"
+              >
                 <Share2 className="h-4 w-4" />
               </button>
               <button className="p-2 bg-secondary hover:bg-primary hover:text-primary-foreground rounded-full transition-colors ml-auto">
@@ -144,31 +157,15 @@ export default function ArticlePage() {
 
             {/* Article Body */}
             <div className="prose prose-lg max-w-none">
-              {displayContent.split("\n").filter(p => p.trim()).map((paragraph, index) => (
-                <p key={index} className="mb-4 text-foreground/90 leading-relaxed">
+              {paragraphs.map((paragraph, index) => (
+                <p key={index} className="mb-6 text-foreground/90 leading-relaxed text-lg">
                   {paragraph}
                 </p>
               ))}
             </div>
 
-            {/* Source Link */}
-            {article.link && (
-              <div className="mt-8 p-4 bg-muted rounded-lg">
-                <p className="text-sm text-muted-foreground mb-2">Original source:</p>
-                <a
-                  href={article.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline flex items-center gap-2"
-                >
-                  Read full article on {article.source || 'original source'}
-                  <ExternalLink className="h-4 w-4" />
-                </a>
-              </div>
-            )}
-
             {/* Back button */}
-            <div className="mt-8">
+            <div className="mt-12 pt-8 border-t border-border">
               <Link to="/">
                 <Button variant="outline" className="gap-2">
                   <ArrowLeft className="h-4 w-4" />
