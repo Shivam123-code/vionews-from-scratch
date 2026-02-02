@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Menu, Search, X, Play } from "lucide-react";
+import { Menu, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const categories = [
-  { name: "Live TV", href: "/live-tv", isLive: true },
   { name: "Latest", href: "/" },
   { name: "World", href: "/category/world" },
   { name: "Business", href: "/category/business" },
@@ -62,12 +61,6 @@ export function Header() {
           >
             <Search className="h-5 w-5" />
           </button>
-          <Link to="/live-tv">
-            <Button variant="outline" size="sm" className="hidden md:flex items-center gap-2">
-              <Play className="h-4 w-4 fill-current" />
-              Live TV
-            </Button>
-          </Link>
           <Button size="sm" className="hidden sm:inline-flex">
             Subscribe
           </Button>
@@ -99,13 +92,8 @@ export function Header() {
               <li key={category.name}>
                 <Link
                   to={category.href}
-                  className={`nav-link px-4 py-2 text-sm whitespace-nowrap flex items-center gap-1.5 ${
-                    category.isLive ? "text-news-live font-semibold" : ""
-                  }`}
+                  className="nav-link px-4 py-2 text-sm whitespace-nowrap"
                 >
-                  {category.isLive && (
-                    <span className="w-2 h-2 bg-news-live rounded-full animate-pulse-dot" />
-                  )}
                   {category.name}
                 </Link>
               </li>
@@ -123,16 +111,9 @@ export function Header() {
                 <Link
                   to={category.href}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`block px-4 py-3 rounded-lg hover:bg-secondary transition-colors ${
-                    category.isLive ? "text-news-live font-semibold" : ""
-                  }`}
+                  className="block px-4 py-3 rounded-lg hover:bg-secondary transition-colors"
                 >
-                  <span className="flex items-center gap-2">
-                    {category.isLive && (
-                      <span className="w-2 h-2 bg-news-live rounded-full animate-pulse-dot" />
-                    )}
-                    {category.name}
-                  </span>
+                  {category.name}
                 </Link>
               </li>
             ))}
