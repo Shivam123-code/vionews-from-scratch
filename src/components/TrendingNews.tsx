@@ -1,9 +1,12 @@
 import { Link } from "react-router-dom";
-import { TrendingUp, Play } from "lucide-react";
-import { articles } from "@/data/articles";
+import { TrendingUp, Play, Loader2 } from "lucide-react";
+import { useNews, NewsArticle } from "@/hooks/useNews";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function TrendingNews() {
-  const trendingStories = articles.slice(0, 5).map((article, index) => ({
+  const { data: articles, isLoading } = useNews();
+
+  const trendingStories = (articles || []).slice(0, 5).map((article, index) => ({
     ...article,
     number: String(index + 1).padStart(2, "0"),
   }));
@@ -35,27 +38,43 @@ export function TrendingNews() {
           <h3 className="font-display font-bold text-lg">Trending Now</h3>
         </div>
         <div className="space-y-4">
-          {trendingStories.map((story) => (
-            <Link
-              to={`/article/${story.slug}`}
-              key={story.id}
-              className="flex gap-3 group cursor-pointer"
-            >
-              <span className="font-display text-2xl font-bold text-primary/30 group-hover:text-primary transition-colors">
-                {story.number}
-              </span>
-              <div className="flex-1">
-                <h4 className="text-sm font-medium leading-snug line-clamp-2 group-hover:text-primary transition-colors">
-                  {story.title}
-                </h4>
-                <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                  <span>{story.category}</span>
-                  <span>•</span>
-                  <span>{story.views} views</span>
+          {isLoading ? (
+            [...Array(5)].map((_, i) => (
+              <div key={i} className="flex gap-3">
+                <Skeleton className="w-8 h-8" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-3 w-24" />
                 </div>
               </div>
-            </Link>
-          ))}
+            ))
+          ) : trendingStories.length > 0 ? (
+            trendingStories.map((story) => (
+              <a
+                href={story.link || `/article/${story.slug}`}
+                target={story.link ? "_blank" : "_self"}
+                rel={story.link ? "noopener noreferrer" : undefined}
+                key={story.id}
+                className="flex gap-3 group cursor-pointer"
+              >
+                <span className="font-display text-2xl font-bold text-primary/30 group-hover:text-primary transition-colors">
+                  {story.number}
+                </span>
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+                    {story.title}
+                  </h4>
+                  <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                    <span>{story.category}</span>
+                    <span>•</span>
+                    <span>{story.source || 'VioNews'}</span>
+                  </div>
+                </div>
+              </a>
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground">No trending stories available</p>
+          )}
         </div>
       </div>
     </aside>

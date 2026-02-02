@@ -1,12 +1,14 @@
 import { AlertCircle } from "lucide-react";
-
-const breakingHeadlines = [
-  "BREAKING: Major diplomatic talks underway between global leaders",
-  "ALERT: Stock markets surge after economic policy announcement",
-  "UPDATE: Historic climate agreement reached at international summit",
-];
+import { useNews } from "@/hooks/useNews";
 
 export function BreakingNews() {
+  const { data: articles } = useNews();
+
+  // Use first 3 articles as breaking news or fallback to defaults
+  const breakingHeadlines = articles?.slice(0, 3).map(a => a.title) || [
+    "Loading latest breaking news...",
+  ];
+
   return (
     <div className="breaking-news-bar">
       <div className="container flex items-center gap-4">

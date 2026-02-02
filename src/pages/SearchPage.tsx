@@ -1,23 +1,52 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import { Clock, Search } from "lucide-react";
+import { Clock, Search, ExternalLink } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { TrendingNews } from "@/components/TrendingNews";
-import { articles, getCategoryColor, Article } from "@/data/articles";
+import { useSearchNews, NewsArticle } from "@/hooks/useNews";
+import { Skeleton } from "@/components/ui/skeleton";
 
-function ArticleCard({ article }: { article: Article }) {
+function getCategoryColor(categorySlug: string): string {
+  const colors: Record<string, string> = {
+    world: "bg-news-world",
+    politics: "bg-news-world",
+    business: "bg-news-business",
+    entertainment: "bg-news-entertainment",
+    sports: "bg-news-sports",
+    tech: "bg-news-tech",
+    technology: "bg-news-tech",
+    science: "bg-news-tech",
+  };
+  return colors[categorySlug] || "bg-primary";
+}
+
+function ArticleCard({ article }: { article: NewsArticle }) {
   const categoryColor = getCategoryColor(article.categorySlug);
 
   return (
-    <Link to={`/article/${article.slug}`} className="news-card group cursor-pointer">
+    <a
+      href={article.link || `/article/${article.slug}`}
+      target={article.link ? "_blank" : "_self"}
+      rel={article.link ? "noopener noreferrer" : undefined}
+      className="news-card group cursor-pointer block"
+    >
       <div className="flex gap-4 p-4">
-        <div className="shrink-0 w-32 h-24 md:w-48 md:h-32 rounded-lg overflow-hidden bg-muted">
+        <div className="shrink-0 w-32 h-24 md:w-48 md:h-32 rounded-lg overflow-hidden bg-muted relative">
           <img
             src={article.image}
             alt={article.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src =
+                "https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800&h=600&fit=crop";
+            }}
           />
+          {article.link && (
+            <div className="absolute top-1 right-1 bg-black/50 p-1 rounded">
+              <ExternalLink className="h-3 w-3 text-white" />
+            </div>
+          )}
         </div>
         <div className="flex-1 min-w-0">
           <span className={`news-category-badge ${categoryColor} text-white mb-2`}>
@@ -30,7 +59,7 @@ function ArticleCard({ article }: { article: Article }) {
             {article.excerpt}
           </p>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <span>{article.author}</span>
+            <span>{article.source || article.author}</span>
             <span className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
               {article.time}
@@ -38,7 +67,23 @@ function ArticleCard({ article }: { article: Article }) {
           </div>
         </div>
       </div>
-    </Link>
+    </a>
+  );
+}
+
+function ArticleSkeleton() {
+  return (
+    <div className="news-card">
+      <div className="flex gap-4 p-4">
+        <Skeleton className="shrink-0 w-32 h-24 md:w-48 md:h-32 rounded-lg" />
+        <div className="flex-1 space-y-3">
+          <Skeleton className="h-5 w-20" />
+          <Skeleton className="h-5 w-full" />
+          <Skeleton className="h-4 w-full hidden sm:block" />
+          <Skeleton className="h-3 w-32" />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -47,17 +92,7 @@ export default function SearchPage() {
   const query = searchParams.get("q") || "";
   const [inputValue, setInputValue] = useState(query);
 
-  const searchResults = useMemo(() => {
-    if (!query.trim()) return [];
-    const lowerQuery = query.toLowerCase();
-    return articles.filter(
-      (article) =>
-        article.title.toLowerCase().includes(lowerQuery) ||
-        article.excerpt.toLowerCase().includes(lowerQuery) ||
-        article.category.toLowerCase().includes(lowerQuery) ||
-        article.author.toLowerCase().includes(lowerQuery)
-    );
-  }, [query]);
+  const { data: searchResults, isLoading, error } = useSearchNews(query);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,7 +115,7 @@ export default function SearchPage() {
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Search for news, topics, or authors..."
+              placeholder="Search for news, topics, or sources..."
               className="w-full pl-12 pr-4 py-4 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-lg"
             />
           </form>
@@ -88,15 +123,27 @@ export default function SearchPage() {
 
         {query && (
           <p className="text-muted-foreground mb-6">
-            {searchResults.length} result{searchResults.length !== 1 ? "s" : ""} for "{query}"
+            {isLoading ? (
+              "Searching..."
+            ) : error ? (
+              "Error loading results"
+            ) : (
+              `${searchResults?.length || 0} result${(searchResults?.length || 0) !== 1 ? "s" : ""} for "${query}"`
+            )}
           </p>
         )}
 
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Search Results */}
           <div className="lg:col-span-2">
-            {query ? (
-              searchResults.length > 0 ? (
+            {isLoading ? (
+              <div className="space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <ArticleSkeleton key={i} />
+                ))}
+              </div>
+            ) : query ? (
+              searchResults && searchResults.length > 0 ? (
                 <div className="space-y-4">
                   {searchResults.map((article) => (
                     <ArticleCard key={article.id} article={article} />
@@ -116,7 +163,7 @@ export default function SearchPage() {
                 <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h2 className="text-xl font-display font-bold mb-2">Search VioNews</h2>
                 <p className="text-muted-foreground">
-                  Enter keywords to find news articles
+                  Enter keywords to find news articles from around the world
                 </p>
               </div>
             )}
