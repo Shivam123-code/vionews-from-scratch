@@ -47,12 +47,12 @@ Deno.serve(async (req) => {
     // Build NewsData.io API URL - focusing on world/international news
     let apiUrl = `https://newsdata.io/api/1/latest?apikey=${apiKey}&language=en`;
     
-    // Add category filter if provided
+    // Add category filter if provided (NewsData.io allows max 5 categories)
     if (category && category !== 'all') {
       apiUrl += `&category=${category}`;
     } else {
-      // Default to world news categories
-      apiUrl += `&category=world,politics,business,technology,science,entertainment,sports`;
+      // Default to world news (keeping it simple for reliable results)
+      apiUrl += `&category=world`;
     }
 
     // Add search query if provided
