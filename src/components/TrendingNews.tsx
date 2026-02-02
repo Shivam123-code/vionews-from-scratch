@@ -1,48 +1,17 @@
+import { Link } from "react-router-dom";
 import { TrendingUp, Play } from "lucide-react";
-
-const trendingStories = [
-  {
-    id: "1",
-    number: "01",
-    title: "Scientists discover high-speed particles at record energy levels",
-    category: "Science",
-    views: "124K",
-  },
-  {
-    id: "2",
-    number: "02",
-    title: "New economic policy sparks debate among financial experts",
-    category: "Business",
-    views: "98K",
-  },
-  {
-    id: "3",
-    number: "03",
-    title: "Viral video captures rare wildlife moment in national park",
-    category: "Trending",
-    views: "87K",
-  },
-  {
-    id: "4",
-    number: "04",
-    title: "Major tech company announces plans for sustainable operations",
-    category: "Tech",
-    views: "76K",
-  },
-  {
-    id: "5",
-    number: "05",
-    title: "Championship game draws record television viewership",
-    category: "Sports",
-    views: "65K",
-  },
-];
+import { articles } from "@/data/articles";
 
 export function TrendingNews() {
+  const trendingStories = articles.slice(0, 5).map((article, index) => ({
+    ...article,
+    number: String(index + 1).padStart(2, "0"),
+  }));
+
   return (
     <aside className="space-y-6">
       {/* Live TV Widget */}
-      <div className="news-card p-4">
+      <Link to="/live-tv" className="news-card p-4 block">
         <div className="flex items-center gap-2 mb-4">
           <span className="w-2 h-2 bg-news-live rounded-full animate-pulse-dot" />
           <h3 className="font-display font-bold text-lg">Live TV</h3>
@@ -57,7 +26,7 @@ export function TrendingNews() {
             <p className="text-white text-sm font-medium">Watch VioNews Live</p>
           </div>
         </div>
-      </div>
+      </Link>
 
       {/* Trending Stories */}
       <div className="news-card p-4">
@@ -67,7 +36,8 @@ export function TrendingNews() {
         </div>
         <div className="space-y-4">
           {trendingStories.map((story) => (
-            <article
+            <Link
+              to={`/article/${story.slug}`}
               key={story.id}
               className="flex gap-3 group cursor-pointer"
             >
@@ -84,7 +54,7 @@ export function TrendingNews() {
                   <span>{story.views} views</span>
                 </div>
               </div>
-            </article>
+            </Link>
           ))}
         </div>
       </div>

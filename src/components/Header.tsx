@@ -1,25 +1,33 @@
 import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Menu, Search, X, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const categories = [
-  { name: "Live TV", href: "#", isLive: true },
-  { name: "Latest", href: "#" },
-  { name: "World", href: "#" },
-  { name: "India", href: "#" },
-  { name: "Business", href: "#" },
-  { name: "Entertainment", href: "#" },
-  { name: "Sports", href: "#" },
-  { name: "Opinions", href: "#" },
-  { name: "Videos", href: "#" },
-  { name: "Photos", href: "#" },
-  { name: "Science", href: "#" },
-  { name: "Tech", href: "#" },
+  { name: "Live TV", href: "/live-tv", isLive: true },
+  { name: "Latest", href: "/" },
+  { name: "World", href: "/category/world" },
+  { name: "Business", href: "/category/business" },
+  { name: "Entertainment", href: "/category/entertainment" },
+  { name: "Sports", href: "/category/sports" },
+  { name: "Science", href: "/category/science" },
+  { name: "Tech", href: "/category/tech" },
 ];
 
 export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      setIsSearchOpen(false);
+      setSearchQuery("");
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 bg-card border-b border-border">
@@ -34,7 +42,7 @@ export function Header() {
         </button>
 
         {/* Logo */}
-        <a href="/" className="flex items-center gap-2">
+        <Link to="/" className="flex items-center gap-2">
           <div className="flex items-center">
             <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
               <span className="text-primary-foreground font-display font-bold text-xl">V</span>
@@ -44,7 +52,7 @@ export function Header() {
               <span className="text-foreground">NEWS</span>
             </span>
           </div>
-        </a>
+        </Link>
 
         {/* Right actions */}
         <div className="flex items-center gap-2 md:gap-4">
@@ -54,10 +62,12 @@ export function Header() {
           >
             <Search className="h-5 w-5" />
           </button>
-          <Button variant="outline" size="sm" className="hidden md:flex items-center gap-2">
-            <Play className="h-4 w-4 fill-current" />
-            Live TV
-          </Button>
+          <Link to="/live-tv">
+            <Button variant="outline" size="sm" className="hidden md:flex items-center gap-2">
+              <Play className="h-4 w-4 fill-current" />
+              Live TV
+            </Button>
+          </Link>
           <Button size="sm" className="hidden sm:inline-flex">
             Subscribe
           </Button>
@@ -66,17 +76,19 @@ export function Header() {
 
       {/* Search bar */}
       {isSearchOpen && (
-        <div className="container pb-4">
+        <form onSubmit={handleSearch} className="container pb-4">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search news..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-12 pr-4 py-3 bg-secondary rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-primary"
               autoFocus
             />
           </div>
-        </div>
+        </form>
       )}
 
       {/* Desktop Navigation */}
@@ -85,8 +97,8 @@ export function Header() {
           <ul className="flex items-center gap-1 py-2 overflow-x-auto">
             {categories.map((category) => (
               <li key={category.name}>
-                <a
-                  href={category.href}
+                <Link
+                  to={category.href}
                   className={`nav-link px-4 py-2 text-sm whitespace-nowrap flex items-center gap-1.5 ${
                     category.isLive ? "text-news-live font-semibold" : ""
                   }`}
@@ -95,7 +107,7 @@ export function Header() {
                     <span className="w-2 h-2 bg-news-live rounded-full animate-pulse-dot" />
                   )}
                   {category.name}
-                </a>
+                </Link>
               </li>
             ))}
           </ul>
@@ -108,8 +120,9 @@ export function Header() {
           <ul className="container py-4 space-y-1">
             {categories.map((category) => (
               <li key={category.name}>
-                <a
-                  href={category.href}
+                <Link
+                  to={category.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
                   className={`block px-4 py-3 rounded-lg hover:bg-secondary transition-colors ${
                     category.isLive ? "text-news-live font-semibold" : ""
                   }`}
@@ -120,7 +133,7 @@ export function Header() {
                     )}
                     {category.name}
                   </span>
-                </a>
+                </Link>
               </li>
             ))}
           </ul>

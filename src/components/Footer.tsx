@@ -1,13 +1,14 @@
+import { Link } from "react-router-dom";
 import { Facebook, Twitter, Instagram, Youtube, Mail } from "lucide-react";
 
 const footerLinks = {
   categories: [
-    { name: "World", href: "#" },
-    { name: "Business", href: "#" },
-    { name: "Entertainment", href: "#" },
-    { name: "Sports", href: "#" },
-    { name: "Science", href: "#" },
-    { name: "Tech", href: "#" },
+    { name: "World", href: "/category/world" },
+    { name: "Business", href: "/category/business" },
+    { name: "Entertainment", href: "/category/entertainment" },
+    { name: "Sports", href: "/category/sports" },
+    { name: "Science", href: "/category/science" },
+    { name: "Tech", href: "/category/tech" },
   ],
   company: [
     { name: "About Us", href: "#" },
@@ -36,7 +37,7 @@ export function Footer() {
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="lg:col-span-1">
-            <a href="/" className="flex items-center gap-2 mb-4">
+            <Link to="/" className="flex items-center gap-2 mb-4">
               <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
                 <span className="text-primary-foreground font-display font-bold text-xl">V</span>
               </div>
@@ -44,7 +45,7 @@ export function Footer() {
                 <span className="text-primary">VIO</span>
                 <span className="text-background">NEWS</span>
               </span>
-            </a>
+            </Link>
             <p className="text-background/70 text-sm mb-6">
               Your trusted source for breaking news, in-depth analysis, and unbiased reporting from around the world.
             </p>
@@ -68,9 +69,12 @@ export function Footer() {
             <ul className="space-y-2">
               {footerLinks.categories.map((link) => (
                 <li key={link.name}>
-                  <a href={link.href} className="text-background/70 hover:text-primary transition-colors text-sm">
+                  <Link
+                    to={link.href}
+                    className="text-background/70 hover:text-primary transition-colors text-sm"
+                  >
                     {link.name}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -82,7 +86,10 @@ export function Footer() {
             <ul className="space-y-2">
               {footerLinks.company.map((link) => (
                 <li key={link.name}>
-                  <a href={link.href} className="text-background/70 hover:text-primary transition-colors text-sm">
+                  <a
+                    href={link.href}
+                    className="text-background/70 hover:text-primary transition-colors text-sm"
+                  >
                     {link.name}
                   </a>
                 </li>
