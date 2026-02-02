@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { TrendingUp, Play, Loader2 } from "lucide-react";
+import { TrendingUp, Play } from "lucide-react";
 import { useNews, NewsArticle } from "@/hooks/useNews";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -50,10 +50,9 @@ export function TrendingNews() {
             ))
           ) : trendingStories.length > 0 ? (
             trendingStories.map((story) => (
-              <a
-                href={story.link || `/article/${story.slug}`}
-                target={story.link ? "_blank" : "_self"}
-                rel={story.link ? "noopener noreferrer" : undefined}
+              <Link
+                to={`/article/${story.slug}`}
+                state={{ article: story }}
                 key={story.id}
                 className="flex gap-3 group cursor-pointer"
               >
@@ -70,7 +69,7 @@ export function TrendingNews() {
                     <span>{story.source || 'VioNews'}</span>
                   </div>
                 </div>
-              </a>
+              </Link>
             ))
           ) : (
             <p className="text-sm text-muted-foreground">No trending stories available</p>

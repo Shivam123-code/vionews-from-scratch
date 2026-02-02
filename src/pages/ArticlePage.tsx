@@ -1,39 +1,29 @@
-import { useParams, Link } from "react-router-dom";
-import { Clock, ArrowLeft, Share2, Bookmark, Facebook, Twitter } from "lucide-react";
+import { useParams, useLocation, Link } from "react-router-dom";
+import { Clock, ArrowLeft, Share2, Bookmark, Facebook, Twitter, ExternalLink } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { TrendingNews } from "@/components/TrendingNews";
-import { getArticleBySlug, getArticlesByCategory, getCategoryColor, Article } from "@/data/articles";
+import { NewsArticle } from "@/hooks/useNews";
 import { Button } from "@/components/ui/button";
 
-function RelatedArticle({ article }: { article: Article }) {
-  return (
-    <Link to={`/article/${article.slug}`} className="news-card group cursor-pointer">
-      <div className="flex gap-4 p-3">
-        <div className="shrink-0 w-24 h-20 rounded-md overflow-hidden bg-muted">
-          <img
-            src={article.image}
-            alt={article.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-medium leading-snug line-clamp-2 group-hover:text-primary transition-colors">
-            {article.title}
-          </h3>
-          <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
-            <Clock className="h-3 w-3" />
-            {article.time}
-          </div>
-        </div>
-      </div>
-    </Link>
-  );
+function getCategoryColor(categorySlug: string): string {
+  const colors: Record<string, string> = {
+    world: "bg-news-world",
+    politics: "bg-news-world",
+    business: "bg-news-business",
+    entertainment: "bg-news-entertainment",
+    sports: "bg-news-sports",
+    tech: "bg-news-tech",
+    technology: "bg-news-tech",
+    science: "bg-news-tech",
+  };
+  return colors[categorySlug] || "bg-primary";
 }
 
 export default function ArticlePage() {
   const { slug } = useParams<{ slug: string }>();
-  const article = getArticleBySlug(slug || "");
+  const location = useLocation();
+  const article = location.state?.article as NewsArticle | undefined;
 
   if (!article) {
     return (
@@ -41,7 +31,7 @@ export default function ArticlePage() {
         <Header />
         <div className="container py-16 text-center">
           <h1 className="text-3xl font-display font-bold mb-4">Article Not Found</h1>
-          <p className="text-muted-foreground mb-8">The article you're looking for doesn't exist.</p>
+          <p className="text-muted-foreground mb-8">The article you're looking for doesn't exist or has expired.</p>
           <Link to="/">
             <Button>Return to Home</Button>
           </Link>
@@ -51,11 +41,17 @@ export default function ArticlePage() {
     );
   }
 
-  const relatedArticles = getArticlesByCategory(article.categorySlug)
-    .filter((a) => a.id !== article.id)
-    .slice(0, 4);
-
   const categoryColor = getCategoryColor(article.categorySlug);
+
+  // Format content - split by sentences for better readability
+  const formatContent = (content: string) => {
+    if (content === "ONLY AVAILABLE IN PAID PLANS") {
+      return article.excerpt;
+    }
+    return content;
+  };
+
+  const displayContent = formatContent(article.content || article.excerpt);
 
   return (
     <div className="min-h-screen bg-background">
@@ -99,11 +95,11 @@ export default function ArticlePage() {
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
                   <span className="font-display font-bold text-primary">
-                    {article.author.charAt(0)}
+                    {(article.source || article.author).charAt(0).toUpperCase()}
                   </span>
                 </div>
                 <div>
-                  <p className="font-medium">{article.author}</p>
+                  <p className="font-medium">{article.source || article.author}</p>
                   <p className="text-sm text-muted-foreground">{article.authorRole}</p>
                 </div>
               </div>
@@ -122,6 +118,10 @@ export default function ArticlePage() {
                 src={article.image}
                 alt={article.title}
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src =
+                    "https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800&h=600&fit=crop";
+                }}
               />
             </div>
 
@@ -144,22 +144,26 @@ export default function ArticlePage() {
 
             {/* Article Body */}
             <div className="prose prose-lg max-w-none">
-              {article.content.split("\n\n").map((paragraph, index) => (
+              {displayContent.split("\n").filter(p => p.trim()).map((paragraph, index) => (
                 <p key={index} className="mb-4 text-foreground/90 leading-relaxed">
                   {paragraph}
                 </p>
               ))}
             </div>
 
-            {/* Related Articles */}
-            {relatedArticles.length > 0 && (
-              <div className="mt-12 pt-8 border-t border-border">
-                <h2 className="font-display text-2xl font-bold mb-6">Related Articles</h2>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  {relatedArticles.map((related) => (
-                    <RelatedArticle key={related.id} article={related} />
-                  ))}
-                </div>
+            {/* Source Link */}
+            {article.link && (
+              <div className="mt-8 p-4 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground mb-2">Original source:</p>
+                <a
+                  href={article.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline flex items-center gap-2"
+                >
+                  Read full article on {article.source || 'original source'}
+                  <ExternalLink className="h-4 w-4" />
+                </a>
               </div>
             )}
 

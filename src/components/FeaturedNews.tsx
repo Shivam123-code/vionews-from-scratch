@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Clock, Loader2 } from "lucide-react";
+import { Clock } from "lucide-react";
 import featuredImg from "@/assets/featured-news.jpg";
 import { useFeaturedNews, NewsArticle } from "@/hooks/useNews";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,10 +20,9 @@ function getCategoryColor(categorySlug: string): string {
 
 function SideStoryCard({ article }: { article: NewsArticle }) {
   return (
-    <a
-      href={article.link || `/article/${article.slug}`}
-      target={article.link ? "_blank" : "_self"}
-      rel={article.link ? "noopener noreferrer" : undefined}
+    <Link
+      to={`/article/${article.slug}`}
+      state={{ article }}
       className="news-card group cursor-pointer block"
     >
       <div className="flex gap-4 p-3">
@@ -53,7 +52,7 @@ function SideStoryCard({ article }: { article: NewsArticle }) {
           </div>
         </div>
       </div>
-    </a>
+    </Link>
   );
 }
 
@@ -115,10 +114,9 @@ export function FeaturedNews() {
 
         {/* Main featured story */}
         <div className="lg:col-span-2 order-1 lg:order-2">
-          <a
-            href={mainArticle.link || `/article/${mainArticle.slug}`}
-            target={mainArticle.link ? "_blank" : "_self"}
-            rel={mainArticle.link ? "noopener noreferrer" : undefined}
+          <Link
+            to={`/article/${mainArticle.slug}`}
+            state={{ article: mainArticle }}
             className="news-card group cursor-pointer block h-full"
           >
             <div className="relative aspect-[16/10] lg:aspect-auto lg:h-full min-h-[400px] overflow-hidden rounded-lg">
@@ -150,7 +148,7 @@ export function FeaturedNews() {
                 </div>
               </div>
             </div>
-          </a>
+          </Link>
         </div>
       </div>
     </section>

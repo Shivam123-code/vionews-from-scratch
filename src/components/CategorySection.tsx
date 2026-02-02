@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Clock, ExternalLink } from "lucide-react";
+import { Clock } from "lucide-react";
 import { useCategoryNews, NewsArticle } from "@/hooks/useNews";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -7,20 +7,6 @@ interface CategoryBlockProps {
   title: string;
   slug: string;
   color: string;
-}
-
-function getCategoryColor(categorySlug: string): string {
-  const colors: Record<string, string> = {
-    world: "bg-news-world",
-    politics: "bg-news-world",
-    business: "bg-news-business",
-    entertainment: "bg-news-entertainment",
-    sports: "bg-news-sports",
-    tech: "bg-news-tech",
-    technology: "bg-news-tech",
-    science: "bg-news-tech",
-  };
-  return colors[categorySlug] || "bg-primary";
 }
 
 function CategoryBlock({ title, slug, color }: CategoryBlockProps) {
@@ -63,10 +49,9 @@ function CategoryBlock({ title, slug, color }: CategoryBlockProps) {
       </div>
       <div className="grid md:grid-cols-2 gap-4">
         {/* Main article */}
-        <a
-          href={mainArticle.link || `/article/${mainArticle.slug}`}
-          target={mainArticle.link ? "_blank" : "_self"}
-          rel={mainArticle.link ? "noopener noreferrer" : undefined}
+        <Link
+          to={`/article/${mainArticle.slug}`}
+          state={{ article: mainArticle }}
           className="news-card group cursor-pointer block"
         >
           <div className="aspect-[4/3] overflow-hidden relative">
@@ -79,11 +64,6 @@ function CategoryBlock({ title, slug, color }: CategoryBlockProps) {
                   "https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800&h=600&fit=crop";
               }}
             />
-            {mainArticle.link && (
-              <div className="absolute top-2 right-2 bg-black/50 p-1 rounded">
-                <ExternalLink className="h-3 w-3 text-white" />
-              </div>
-            )}
           </div>
           <div className="p-4">
             <h3 className="news-headline text-lg line-clamp-2 group-hover:text-primary transition-colors">
@@ -94,15 +74,14 @@ function CategoryBlock({ title, slug, color }: CategoryBlockProps) {
               {mainArticle.time}
             </div>
           </div>
-        </a>
+        </Link>
 
         {/* Side articles */}
         <div className="space-y-3">
           {sideArticles.map((article) => (
-            <a
-              href={article.link || `/article/${article.slug}`}
-              target={article.link ? "_blank" : "_self"}
-              rel={article.link ? "noopener noreferrer" : undefined}
+            <Link
+              to={`/article/${article.slug}`}
+              state={{ article }}
               key={article.id}
               className="news-card group cursor-pointer block"
             >
@@ -128,7 +107,7 @@ function CategoryBlock({ title, slug, color }: CategoryBlockProps) {
                   </div>
                 </div>
               </div>
-            </a>
+            </Link>
           ))}
         </div>
       </div>
