@@ -1,10 +1,13 @@
 import { useParams, useLocation, Link } from "react-router-dom";
-import { Clock, ArrowLeft, Share2, Bookmark, Facebook, Twitter } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Clock, ArrowLeft, Share2, Bookmark, Facebook, Twitter, Loader2 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { TrendingNews } from "@/components/TrendingNews";
 import { NewsArticle } from "@/hooks/useNews";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 function getCategoryColor(categorySlug: string): string {
   const colors: Record<string, string> = {
@@ -24,6 +27,59 @@ export default function ArticlePage() {
   const { slug } = useParams<{ slug: string }>();
   const location = useLocation();
   const article = location.state?.article as NewsArticle | undefined;
+  const { toast } = useToast();
+
+  const [fullContent, setFullContent] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [hasGenerated, setHasGenerated] = useState(false);
+
+  // Auto-generate full content when article loads
+  useEffect(() => {
+    if (article && !hasGenerated) {
+      generateFullArticle();
+    }
+  }, [article]);
+
+  const generateFullArticle = async () => {
+    if (!article || isGenerating) return;
+    
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-article', {
+        body: {
+          title: article.title,
+          excerpt: article.excerpt,
+          category: article.category,
+          source: article.source || article.author,
+        },
+      });
+
+      if (error) {
+        console.error('Error generating article:', error);
+        toast({
+          title: "Could not generate full article",
+          description: "Showing available content instead.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data?.success && data?.content) {
+        setFullContent(data.content);
+      } else if (data?.error) {
+        toast({
+          title: "Generation failed",
+          description: data.error,
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      console.error('Error:', err);
+    } finally {
+      setIsGenerating(false);
+      setHasGenerated(true);
+    }
+  };
 
   if (!article) {
     return (
@@ -43,19 +99,8 @@ export default function ArticlePage() {
 
   const categoryColor = getCategoryColor(article.categorySlug);
 
-  // Get the best available content
-  const getDisplayContent = () => {
-    // If we have real content (not the paid plan message), use it
-    if (article.content && article.content !== "ONLY AVAILABLE IN PAID PLANS") {
-      return article.content;
-    }
-    // Otherwise use the excerpt which always has content
-    return article.excerpt;
-  };
-
-  const displayContent = getDisplayContent();
-
-  // Split content into paragraphs for better readability
+  // Use AI-generated content if available, otherwise fall back to excerpt
+  const displayContent = fullContent || article.excerpt;
   const paragraphs = displayContent
     .split(/\n+/)
     .filter(p => p.trim())
@@ -155,6 +200,14 @@ export default function ArticlePage() {
               </button>
             </div>
 
+            {/* Loading indicator */}
+            {isGenerating && (
+              <div className="flex items-center gap-3 mb-6 p-4 bg-muted rounded-lg">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                <span className="text-sm text-muted-foreground">Generating full article with AI...</span>
+              </div>
+            )}
+
             {/* Article Body */}
             <div className="prose prose-lg max-w-none">
               {paragraphs.map((paragraph, index) => (
@@ -163,6 +216,15 @@ export default function ArticlePage() {
                 </p>
               ))}
             </div>
+
+            {/* AI Generated Notice */}
+            {fullContent && (
+              <div className="mt-8 p-4 bg-muted/50 rounded-lg border border-border">
+                <p className="text-sm text-muted-foreground">
+                  📰 This article was expanded by AI based on news from {article.source || 'news sources'}.
+                </p>
+              </div>
+            )}
 
             {/* Back button */}
             <div className="mt-12 pt-8 border-t border-border">
