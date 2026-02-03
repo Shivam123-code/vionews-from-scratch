@@ -134,6 +134,12 @@ export function Footer() {
                 {link.name}
               </a>
             ))}
+            <Link
+              to="/admin/login"
+              className="w-6 h-6 bg-background/20 hover:bg-primary text-background/50 hover:text-primary-foreground rounded flex items-center justify-center text-xs font-bold transition-colors"
+            >
+              A
+            </Link>
           </div>
         </div>
       </div>
