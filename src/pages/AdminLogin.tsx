@@ -60,6 +60,23 @@ export default function AdminLogin() {
     setIsSubmitting(false);
   };
 
+  const handleResetPassword = async () => {
+    if (!email.trim()) {
+      toast.error('Please enter your email first');
+      return;
+    }
+    
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/admin/login`,
+    });
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success('Password reset email sent! Check your inbox.');
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
@@ -105,6 +122,14 @@ export default function AdminLogin() {
                   Sign In
                 </>
               )}
+            </Button>
+            <Button
+              type="button"
+              variant="link"
+              className="w-full text-sm"
+              onClick={handleResetPassword}
+            >
+              Forgot password? Set a new one
             </Button>
           </form>
         </CardContent>
