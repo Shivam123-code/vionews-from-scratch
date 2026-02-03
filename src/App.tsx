@@ -12,6 +12,7 @@ import AdminLogin from "./pages/AdminLogin";
 import AdminCallback from "./pages/AdminCallback";
 import AdminDashboard from "./pages/AdminDashboard";
 import ArticleForm from "./pages/ArticleForm";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/category/:slug" element={<CategoryPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/reset-password" element={<ResetPassword />} />
           <Route path="/admin/callback" element={<AdminCallback />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/articles/new" element={<ArticleForm />} />
