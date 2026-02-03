@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { BreakingNews } from "@/components/BreakingNews";
 import { FeaturedNews } from "@/components/FeaturedNews";
@@ -28,14 +27,6 @@ const Index = () => {
       <NewsGrid />
       <CategorySection />
       <Footer />
-
-      {/* Admin login button */}
-      <Link
-        to="/admin/login"
-        className="fixed bottom-6 right-6 w-12 h-12 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-lg font-bold shadow-lg hover:bg-primary/90 transition-colors z-50"
-      >
-        A
-      </Link>
     </div>
   );
 };
