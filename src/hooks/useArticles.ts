@@ -182,21 +182,30 @@ export function useDeleteArticle() {
 export function useUploadImage() {
   return useMutation({
     mutationFn: async (file: File) => {
+      // Validate file size (max 5MB)
+      const MAX_SIZE = 5 * 1024 * 1024;
+      if (file.size > MAX_SIZE) {
+        throw new Error('File size must be less than 5MB');
+      }
+ 
       const fileExt = file.name.split('.').pop();
       const fileName = `${crypto.randomUUID()}.${fileExt}`;
       const filePath = `articles/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('article-images')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
+      const { data } = supabase.storage
         .from('article-images')
         .getPublicUrl(filePath);
 
-      return publicUrl;
+      return data.publicUrl;
     },
     onError: (error: Error) => {
       toast.error(`Failed to upload image: ${error.message}`);

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 import { Navigate, useNavigate, useParams, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -112,6 +113,13 @@ export default function ArticleForm() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validate file size (max 5MB)
+    const MAX_SIZE = 5 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      toast.error('File size must be less than 5MB');
+      return;
+    }
+ 
     // Show preview immediately
     const reader = new FileReader();
     reader.onload = (event) => {
