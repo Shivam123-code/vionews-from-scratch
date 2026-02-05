@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Menu, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+ import { HeaderAd } from "@/components/ads/HeaderAd";
 
 const categories = [
   { name: "Latest", href: "/" },
@@ -53,6 +54,9 @@ export function Header() {
           </div>
         </Link>
 
+         {/* Header Ad - between logo and search */}
+         <HeaderAd />
+ 
         {/* Right actions */}
         <div className="flex items-center gap-2 md:gap-4">
           <button
