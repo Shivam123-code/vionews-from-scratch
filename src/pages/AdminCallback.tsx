@@ -13,7 +13,15 @@ export default function AdminCallback() {
     const run = async () => {
       try {
         const url = new URL(window.location.href);
-        const code = url.searchParams.get("code");
+        // With hash routing, providers may attach params either before or after the hash.
+        const codeFromSearch = url.searchParams.get("code");
+
+        const hash = window.location.hash || "";
+        const hashQuery = hash.includes("?") ? hash.split("?")[1] : "";
+        const hashParams = new URLSearchParams(hashQuery);
+        const codeFromHash = hashParams.get("code");
+
+        const code = codeFromSearch || codeFromHash;
 
         // PKCE flow: exchange the code for a session
         if (code) {

@@ -10,12 +10,12 @@ import { Loader2, LogIn } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminLogin() {
-  const { user, isAdmin, isLoading } = useAuth();
+  const { user, isAdmin, adminChecked, isLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  if (isLoading) {
+  if (isLoading || (user && !adminChecked)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -67,7 +67,7 @@ export default function AdminLogin() {
     }
     
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/admin/reset-password`,
+      redirectTo: `${window.location.origin}/#/admin/reset-password`,
     });
 
     if (error) {

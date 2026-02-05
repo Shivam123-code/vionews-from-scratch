@@ -45,7 +45,7 @@ export default function ArticleForm() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { user, isAdmin, isLoading: authLoading } = useAuth();
+  const { user, isAdmin, adminChecked, isLoading: authLoading } = useAuth();
   const { data: existingArticle, isLoading: articleLoading } = useArticle(id || '');
   const createArticle = useCreateArticle();
   const updateArticle = useUpdateArticle();
@@ -86,7 +86,7 @@ export default function ArticleForm() {
     }
   }, [existingArticle]);
 
-  if (authLoading || (isEditing && articleLoading)) {
+  if (authLoading || (user && !adminChecked) || (isEditing && articleLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
