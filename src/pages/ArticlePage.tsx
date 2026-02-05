@@ -8,6 +8,7 @@ import { NewsArticle } from "@/hooks/useNews";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+ import { ArticleTopAd } from "@/components/ads/ArticleTopAd";
 
 function getCategoryColor(categorySlug: string): string {
   const colors: Record<string, string> = {
@@ -111,6 +112,9 @@ export default function ArticlePage() {
       <Header />
 
       <main className="container py-8">
+         {/* Top Ad */}
+         <ArticleTopAd />
+ 
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 mb-6 text-sm">
           <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">

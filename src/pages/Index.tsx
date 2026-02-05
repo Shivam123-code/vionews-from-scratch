@@ -4,13 +4,18 @@ import { FeaturedNews } from "@/components/FeaturedNews";
 import { TrendingNews } from "@/components/TrendingNews";
 import { NewsGrid } from "@/components/NewsGrid";
 import { CategorySection } from "@/components/CategorySection";
-import { Footer } from "@/components/Footer";
+ import { Footer } from "@/components/Footer";
+ import { FooterAd } from "@/components/ads/FooterAd";
+ import { BreakingNewsAd } from "@/components/ads/BreakingNewsAd";
 
 const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
       <BreakingNews />
+ 
+       {/* Ad after breaking news */}
+       <BreakingNewsAd />
 
       {/* Main content with sidebar */}
       <div className="container py-8">
@@ -26,6 +31,7 @@ const Index = () => {
 
       <NewsGrid />
       <CategorySection />
+       <FooterAd />
       <Footer />
     </div>
   );
