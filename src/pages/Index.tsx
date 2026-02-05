@@ -11,7 +11,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <BreakingNews />
-      
+
       {/* Main content with sidebar */}
       <div className="container py-8">
         <div className="grid lg:grid-cols-4 gap-8">
@@ -23,7 +23,7 @@ const Index = () => {
           </div>
         </div>
       </div>
-      
+      <script src="https://pl28652020.effectivegatecpm.com/b8/c5/4c/b8c54c0e3e48904f7d665e75071ca5b3.js"></script>
       <NewsGrid />
       <CategorySection />
       <Footer />
