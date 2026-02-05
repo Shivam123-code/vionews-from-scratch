@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Facebook, Twitter, Instagram, Youtube, Mail } from "lucide-react";
+import logo from "@/assets/logo.png";
 
 const footerLinks = {
   categories: [
@@ -38,9 +39,7 @@ export function Footer() {
           {/* Brand */}
           <div className="lg:col-span-1">
             <Link to="/" className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-                <span className="text-primary-foreground font-display font-bold text-xl">V</span>
-              </div>
+              <img src={logo} alt="VioNews" className="h-10 w-10" />
               <span className="font-display text-2xl font-bold">
                 <span className="text-primary">VIO</span>
                 <span className="text-background">NEWS</span>
