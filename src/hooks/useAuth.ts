@@ -6,6 +6,7 @@ interface AuthState {
   user: User | null;
   session: Session | null;
   isAdmin: boolean;
+  adminChecked: boolean;
   isLoading: boolean;
 }
 
@@ -14,15 +15,33 @@ export function useAuth() {
     user: null,
     session: null,
     isAdmin: false,
+    adminChecked: true,
     isLoading: true,
   });
 
   useEffect(() => {
     let cancelled = false;
+    let checkSeq = 0;
+
+    const withTimeout = async <T,>(promise: PromiseLike<T>, ms: number): Promise<T> => {
+      let timeoutId: number | undefined;
+      const timeout = new Promise<T>((_, reject) => {
+        timeoutId = window.setTimeout(() => reject(new Error("timeout")), ms);
+      });
+      try {
+        return await Promise.race([Promise.resolve(promise), timeout]);
+      } finally {
+        if (timeoutId) window.clearTimeout(timeoutId);
+      }
+    };
 
     const resolveAdmin = async (userId: string) => {
       try {
-        const { data, error } = await supabase.rpc('is_admin', { _user_id: userId });
+        // Never let admin check block the UI indefinitely.
+        const { data, error } = await withTimeout(
+          supabase.rpc('is_admin', { _user_id: userId }),
+          7000
+        );
         if (error) return false;
         return data ?? false;
       } catch {
@@ -30,35 +49,53 @@ export function useAuth() {
       }
     };
 
+    const applySession = (session: Session | null) => {
+      const user = session?.user ?? null;
+
+      // Always resolve loading immediately once we know whether a session exists.
+      // Admin check runs in background and updates `isAdmin/adminChecked` when done.
+      setAuthState((prev) => ({
+        ...prev,
+        user,
+        session,
+        isLoading: false,
+        isAdmin: user ? prev.isAdmin : false,
+        adminChecked: user ? false : true,
+      }));
+
+      if (!user) return;
+
+      const seq = ++checkSeq;
+      void (async () => {
+        const isAdmin = await resolveAdmin(user.id);
+        if (cancelled || seq !== checkSeq) return;
+        setAuthState((prev) => ({
+          ...prev,
+          isAdmin,
+          adminChecked: true,
+        }));
+      })();
+    };
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        const user = session?.user ?? null;
-        
-        if (user) {
-          const isAdmin = await resolveAdmin(user.id);
-          if (cancelled) return;
-          setAuthState({ user, session, isAdmin, isLoading: false });
-        } else {
-          if (cancelled) return;
-          setAuthState({ user: null, session: null, isAdmin: false, isLoading: false });
-        }
+        if (cancelled) return;
+        applySession(session);
       }
     );
 
     // THEN get current session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      const user = session?.user ?? null;
-      
-      if (user) {
-        const isAdmin = await resolveAdmin(user.id);
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
         if (cancelled) return;
-        setAuthState({ user, session, isAdmin, isLoading: false });
-      } else {
+        applySession(session);
+      })
+      .catch(() => {
         if (cancelled) return;
-        setAuthState({ user: null, session: null, isAdmin: false, isLoading: false });
-      }
-    });
+        setAuthState({ user: null, session: null, isAdmin: false, adminChecked: true, isLoading: false });
+      });
 
     return () => {
       cancelled = true;
@@ -72,7 +109,7 @@ export function useAuth() {
       options: {
         // Use a dedicated callback route to reliably finalize the session
         // before hitting protected routes.
-        emailRedirectTo: `${window.location.origin}/admin/callback`,
+        emailRedirectTo: `${window.location.origin}/#/admin/callback`,
       },
     });
     return { error };

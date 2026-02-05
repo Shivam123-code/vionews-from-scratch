@@ -37,12 +37,12 @@ import {
 import { format } from 'date-fns';
 
 export default function AdminDashboard() {
-  const { user, isAdmin, isLoading, signOut } = useAuth();
+  const { user, isAdmin, adminChecked, isLoading, signOut } = useAuth();
   const { data: articles, isLoading: articlesLoading } = useAdminArticles();
   const deleteArticle = useDeleteArticle();
   const [searchQuery, setSearchQuery] = useState('');
 
-  if (isLoading) {
+  if (isLoading || (user && !adminChecked)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
