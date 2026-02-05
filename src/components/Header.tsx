@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Menu, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import logo from "@/assets/logo.png";
 
 const categories = [
   { name: "Latest", href: "/" },
@@ -42,15 +43,11 @@ export function Header() {
 
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <div className="flex items-center">
-            <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-              <span className="text-primary-foreground font-display font-bold text-xl">V</span>
-            </div>
-            <span className="font-display text-2xl md:text-3xl font-bold ml-2 tracking-tight">
-              <span className="text-primary">VIO</span>
-              <span className="text-foreground">NEWS</span>
-            </span>
-          </div>
+          <img src={logo} alt="VioNews" className="h-10 w-10" />
+          <span className="font-display text-2xl md:text-3xl font-bold tracking-tight">
+            <span className="text-primary">VIO</span>
+            <span className="text-foreground">NEWS</span>
+          </span>
         </Link>
 
         {/* Right actions */}
