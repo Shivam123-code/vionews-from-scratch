@@ -53,38 +53,48 @@ async function fetchNews(category?: string, query?: string): Promise<NewsArticle
   return data.articles;
 }
 
+// Cache configuration - 10 minutes stale time to reduce API calls
+const STALE_TIME = 10 * 60 * 1000;
+const CACHE_TIME = 15 * 60 * 1000;
+
 export function useNews(category?: string, query?: string) {
   return useQuery({
-    queryKey: ['news', category, query],
+    queryKey: ['news', category || 'all', query],
     queryFn: () => fetchNews(category, query),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 5 * 60 * 1000, // Auto-refresh every 5 minutes
+    staleTime: STALE_TIME,
+    gcTime: CACHE_TIME,
+    refetchOnWindowFocus: false,
   });
 }
 
 export function useFeaturedNews() {
+  // Use the same queryKey as useCategoryNews('world') to share cache
   return useQuery({
-    queryKey: ['news', 'featured'],
+    queryKey: ['news', 'world', undefined],
     queryFn: () => fetchNews('world'),
-    staleTime: 5 * 60 * 1000,
-    refetchInterval: 5 * 60 * 1000,
+    staleTime: STALE_TIME,
+    gcTime: CACHE_TIME,
+    refetchOnWindowFocus: false,
   });
 }
 
 export function useCategoryNews(category: string) {
   return useQuery({
-    queryKey: ['news', 'category', category],
+    queryKey: ['news', category, undefined],
     queryFn: () => fetchNews(category),
-    staleTime: 5 * 60 * 1000,
-    refetchInterval: 5 * 60 * 1000,
+    staleTime: STALE_TIME,
+    gcTime: CACHE_TIME,
+    refetchOnWindowFocus: false,
   });
 }
 
 export function useSearchNews(query: string) {
   return useQuery({
-    queryKey: ['news', 'search', query],
+    queryKey: ['news', undefined, query],
     queryFn: () => fetchNews(undefined, query),
     enabled: query.length > 0,
-    staleTime: 5 * 60 * 1000,
+    staleTime: STALE_TIME,
+    gcTime: CACHE_TIME,
+    refetchOnWindowFocus: false,
   });
 }
