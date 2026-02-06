@@ -86,7 +86,7 @@ export default function ArticlePage() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <meta name="google-site-verification" content="gZZNef_JyLmQ56F0UWx25G-LYE2VRLAR3rE74LbWD_Y" />
+        
         <div className="container py-16 text-center">
           <h1 className="text-3xl font-display font-bold mb-4">Article Not Found</h1>
           <p className="text-muted-foreground mb-8">The article you're looking for doesn't exist or has expired.</p>
