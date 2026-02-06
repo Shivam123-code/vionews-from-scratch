@@ -8,7 +8,7 @@ import { NewsArticle } from "@/hooks/useNews";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
- import { ArticleTopAd } from "@/components/ads/ArticleTopAd";
+import { ArticleTopAd } from "@/components/ads/ArticleTopAd";
 
 function getCategoryColor(categorySlug: string): string {
   const colors: Record<string, string> = {
@@ -43,10 +43,10 @@ export default function ArticlePage() {
 
   const generateFullArticle = async () => {
     if (!article || isGenerating) return;
-    
+
     setIsGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-article', {
+      const { data, error } = await supabase.functions.invoke("generate-article", {
         body: {
           title: article.title,
           excerpt: article.excerpt,
@@ -56,7 +56,7 @@ export default function ArticlePage() {
       });
 
       if (error) {
-        console.error('Error generating article:', error);
+        console.error("Error generating article:", error);
         toast({
           title: "Could not generate full article",
           description: "Showing available content instead.",
@@ -75,7 +75,7 @@ export default function ArticlePage() {
         });
       }
     } catch (err) {
-      console.error('Error:', err);
+      console.error("Error:", err);
     } finally {
       setIsGenerating(false);
       setHasGenerated(true);
@@ -86,6 +86,7 @@ export default function ArticlePage() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
+        <meta name="google-site-verification" content="gZZNef_JyLmQ56F0UWx25G-LYE2VRLAR3rE74LbWD_Y" />
         <div className="container py-16 text-center">
           <h1 className="text-3xl font-display font-bold mb-4">Article Not Found</h1>
           <p className="text-muted-foreground mb-8">The article you're looking for doesn't exist or has expired.</p>
@@ -104,17 +105,17 @@ export default function ArticlePage() {
   const displayContent = fullContent || article.excerpt;
   const paragraphs = displayContent
     .split(/\n+/)
-    .filter(p => p.trim())
-    .map(p => p.trim());
+    .filter((p) => p.trim())
+    .map((p) => p.trim());
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
 
       <main className="container py-8">
-         {/* Top Ad */}
-         <ArticleTopAd />
- 
+        {/* Top Ad */}
+        <ArticleTopAd />
+
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 mb-6 text-sm">
           <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">
@@ -139,9 +140,7 @@ export default function ArticlePage() {
               {article.category}
             </Link>
 
-            <h1 className="news-headline text-3xl md:text-4xl lg:text-5xl mb-6">
-              {article.title}
-            </h1>
+            <h1 className="news-headline text-3xl md:text-4xl lg:text-5xl mb-6">{article.title}</h1>
 
             {/* Author and Meta */}
             <div className="flex items-center justify-between flex-wrap gap-4 pb-6 mb-6 border-b border-border">
@@ -181,19 +180,29 @@ export default function ArticlePage() {
             {/* Share buttons */}
             <div className="flex items-center gap-3 mb-8">
               <span className="text-sm font-medium">Share:</span>
-              <button 
-                onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`, '_blank')}
+              <button
+                onClick={() =>
+                  window.open(
+                    `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`,
+                    "_blank",
+                  )
+                }
                 className="p-2 bg-secondary hover:bg-primary hover:text-primary-foreground rounded-full transition-colors"
               >
                 <Facebook className="h-4 w-4" />
               </button>
-              <button 
-                onClick={() => window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(article.title)}`, '_blank')}
+              <button
+                onClick={() =>
+                  window.open(
+                    `https://twitter.com/intent/tweet?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(article.title)}`,
+                    "_blank",
+                  )
+                }
                 className="p-2 bg-secondary hover:bg-primary hover:text-primary-foreground rounded-full transition-colors"
               >
                 <Twitter className="h-4 w-4" />
               </button>
-              <button 
+              <button
                 onClick={() => navigator.share?.({ title: article.title, url: window.location.href })}
                 className="p-2 bg-secondary hover:bg-primary hover:text-primary-foreground rounded-full transition-colors"
               >
@@ -225,7 +234,7 @@ export default function ArticlePage() {
             {fullContent && (
               <div className="mt-8 p-4 bg-muted/50 rounded-lg border border-border">
                 <p className="text-sm text-muted-foreground">
-                  📰 This article was expanded by AI based on news from {article.source || 'news sources'}.
+                  📰 This article was expanded by AI based on news from {article.source || "news sources"}.
                 </p>
               </div>
             )}
