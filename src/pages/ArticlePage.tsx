@@ -34,11 +34,20 @@ export default function ArticlePage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasGenerated, setHasGenerated] = useState(false);
 
-  // Auto-generate full content only if the article doesn't already have content
+  // Check if content is real (not a placeholder from the news API)
+  const hasRealContent = (content: string | undefined | null): boolean => {
+    if (!content) return false;
+    const placeholder = content.trim().toLowerCase();
+    return !placeholder.includes('only available in paid plan') &&
+           !placeholder.includes('available in paid plan') &&
+           placeholder.length > 50;
+  };
+
+  // Auto-generate full content only if the article doesn't already have real content
   useEffect(() => {
-    if (article && !hasGenerated && !article.content) {
+    if (article && !hasGenerated && !hasRealContent(article.content)) {
       generateFullArticle();
-    } else if (article?.content) {
+    } else if (article && hasRealContent(article.content)) {
       setHasGenerated(true);
     }
   }, [article]);
@@ -103,8 +112,8 @@ export default function ArticlePage() {
 
   const categoryColor = getCategoryColor(article.categorySlug);
 
-  // Priority: 1) article's own content from DB, 2) AI-generated content, 3) excerpt
-  const displayContent = article.content || fullContent || article.excerpt;
+  // Priority: 1) article's own real content from DB, 2) AI-generated content, 3) excerpt
+  const displayContent = (hasRealContent(article.content) ? article.content : null) || fullContent || article.excerpt;
   const paragraphs = displayContent
     .split(/\n+/)
     .filter((p) => p.trim())
