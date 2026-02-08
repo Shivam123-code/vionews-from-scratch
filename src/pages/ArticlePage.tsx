@@ -34,10 +34,12 @@ export default function ArticlePage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasGenerated, setHasGenerated] = useState(false);
 
-  // Auto-generate full content when article loads
+  // Auto-generate full content only if the article doesn't already have content
   useEffect(() => {
-    if (article && !hasGenerated) {
+    if (article && !hasGenerated && !article.content) {
       generateFullArticle();
+    } else if (article?.content) {
+      setHasGenerated(true);
     }
   }, [article]);
 
@@ -101,8 +103,8 @@ export default function ArticlePage() {
 
   const categoryColor = getCategoryColor(article.categorySlug);
 
-  // Use AI-generated content if available, otherwise fall back to excerpt
-  const displayContent = fullContent || article.excerpt;
+  // Priority: 1) article's own content from DB, 2) AI-generated content, 3) excerpt
+  const displayContent = article.content || fullContent || article.excerpt;
   const paragraphs = displayContent
     .split(/\n+/)
     .filter((p) => p.trim())
