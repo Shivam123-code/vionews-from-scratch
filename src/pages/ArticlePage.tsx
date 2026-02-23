@@ -27,12 +27,57 @@ function getCategoryColor(categorySlug: string): string {
 export default function ArticlePage() {
   const { slug } = useParams<{ slug: string }>();
   const location = useLocation();
-  const article = location.state?.article as NewsArticle | undefined;
+  const stateArticle = location.state?.article as NewsArticle | undefined;
   const { toast } = useToast();
 
+  const [article, setArticle] = useState<NewsArticle | undefined>(stateArticle);
+  const [isLoadingArticle, setIsLoadingArticle] = useState(!stateArticle);
   const [fullContent, setFullContent] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasGenerated, setHasGenerated] = useState(false);
+
+  // Fetch article from DB when accessed via direct link (no state)
+  useEffect(() => {
+    if (stateArticle) return;
+    if (!slug) return;
+
+    const fetchArticle = async () => {
+      setIsLoadingArticle(true);
+      try {
+        const { data, error } = await supabase
+          .from("articles")
+          .select("*")
+          .eq("slug", slug)
+          .maybeSingle();
+
+        if (data && !error) {
+          setArticle({
+            id: data.id,
+            slug: data.slug,
+            title: data.title,
+            excerpt: data.excerpt || "",
+            content: data.content || "",
+            image: data.image_url || "https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800&h=600&fit=crop",
+            category: data.category,
+            categorySlug: data.category_slug,
+            date: new Date(data.published_at || data.created_at).toLocaleDateString(),
+            time: new Date(data.published_at || data.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            author: data.author || "VioNews",
+            authorRole: data.author_role || "",
+            views: data.views || "0",
+            source: data.source_name || undefined,
+            link: data.source_url || undefined,
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching article:", err);
+      } finally {
+        setIsLoadingArticle(false);
+      }
+    };
+
+    fetchArticle();
+  }, [slug, stateArticle]);
 
   // Check if content is real (not a placeholder from the news API)
   const hasRealContent = (content: string | undefined | null): boolean => {
@@ -92,6 +137,19 @@ export default function ArticlePage() {
       setHasGenerated(true);
     }
   };
+
+  if (isLoadingArticle) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container py-16 text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading article...</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!article) {
     return (
