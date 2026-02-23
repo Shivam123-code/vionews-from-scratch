@@ -25,7 +25,7 @@ const footerLinks = {
 
 const socialLinks = [
   { name: "Facebook", icon: Facebook, href: "#" },
-  { name: "Twitter", icon: Twitter, href: "#" },
+  { name: "Twitter", icon: Twitter, href: "https://x.com/vionewsbusiness" },
   { name: "Instagram", icon: Instagram, href: "#" },
   { name: "Youtube", icon: Youtube, href: "#" },
 ];
@@ -54,6 +54,8 @@ export function Footer() {
                 <a
                   key={social.name}
                   href={social.href}
+                  target={social.href !== "#" ? "_blank" : undefined}
+                  rel={social.href !== "#" ? "noopener noreferrer" : undefined}
                   className="w-10 h-10 bg-background/10 hover:bg-primary rounded-full flex items-center justify-center transition-colors"
                   aria-label={social.name}
                 >
