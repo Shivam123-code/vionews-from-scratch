@@ -41,8 +41,52 @@ export default function ArticlePage() {
     if (stateArticle) return;
     if (!slug) return;
 
+    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+    const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+    const transformDbArticle = (data: any): NewsArticle => ({
+      id: data.id,
+      slug: data.slug,
+      title: data.title,
+      excerpt: data.excerpt || "",
+      content: data.content || "",
+      image: data.image_url || "https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800&h=600&fit=crop",
+      category: data.category,
+      categorySlug: data.category_slug,
+      date: new Date(data.published_at || data.created_at).toLocaleDateString(),
+      time: new Date(data.published_at || data.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      author: data.author || "VioNews",
+      authorRole: data.author_role || "",
+      views: data.views || "0",
+      source: data.source_name || undefined,
+      link: data.source_url || undefined,
+    });
+
     const fetchArticle = async () => {
       setIsLoadingArticle(true);
+      try {
+        // Primary: fetch via edge function to avoid CORS issues
+        const url = `${SUPABASE_URL}/functions/v1/fetch-news?q=${encodeURIComponent(slug.replace(/-/g, ' '))}&limit=1`;
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'apikey': SUPABASE_ANON_KEY,
+          },
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.articles?.length > 0) {
+            const match = result.articles.find((a: any) => a.slug === slug) || result.articles[0];
+            setArticle(match);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn("Edge function fetch failed, trying direct DB:", err);
+      }
+
+      // Fallback: direct database query
       try {
         const { data, error } = await supabase
           .from("articles")
@@ -51,23 +95,7 @@ export default function ArticlePage() {
           .maybeSingle();
 
         if (data && !error) {
-          setArticle({
-            id: data.id,
-            slug: data.slug,
-            title: data.title,
-            excerpt: data.excerpt || "",
-            content: data.content || "",
-            image: data.image_url || "https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800&h=600&fit=crop",
-            category: data.category,
-            categorySlug: data.category_slug,
-            date: new Date(data.published_at || data.created_at).toLocaleDateString(),
-            time: new Date(data.published_at || data.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            author: data.author || "VioNews",
-            authorRole: data.author_role || "",
-            views: data.views || "0",
-            source: data.source_name || undefined,
-            link: data.source_url || undefined,
-          });
+          setArticle(transformDbArticle(data));
         }
       } catch (err) {
         console.error("Error fetching article:", err);
