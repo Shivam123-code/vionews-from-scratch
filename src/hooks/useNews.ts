@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fallbackArticles } from "@/data/fallbackNews";
 
 export interface NewsArticle {
   id: string;
@@ -72,14 +73,55 @@ const categoryMap: Record<string, string> = {
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
+// --- Cache helpers ---
+function cacheKey(category?: string, query?: string): string {
+  return `vionews:${category || 'all'}:${query || ''}`;
+}
+
+function saveToCache(key: string, articles: NewsArticle[]) {
+  try {
+    localStorage.setItem(key, JSON.stringify({ ts: Date.now(), articles }));
+  } catch { /* quota exceeded, ignore */ }
+}
+
+function readFromCache(key: string): NewsArticle[] | null {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    // Accept cache up to 1 hour old
+    if (Date.now() - parsed.ts > 3600000) return null;
+    return parsed.articles as NewsArticle[];
+  } catch {
+    return null;
+  }
+}
+
+// --- Fetch via same-origin proxy (no CORS issues) ---
+async function fetchViaProxy(category?: string, query?: string): Promise<NewsArticle[]> {
+  const params = new URLSearchParams();
+  if (category && category !== 'all') params.set('category', category);
+  if (query) params.set('q', query);
+
+  const url = `/api/news/fetch-news?${params.toString()}`;
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'apikey': SUPABASE_ANON_KEY,
+    },
+  });
+
+  if (!response.ok) throw new Error(`Proxy returned ${response.status}`);
+  const data = await response.json();
+  if (!data.success) throw new Error(data.error || 'Proxy fetch failed');
+  return data.articles as NewsArticle[];
+}
+
+// --- Fetch via direct edge function URL ---
 async function fetchViaEdgeFunction(category?: string, query?: string): Promise<NewsArticle[]> {
   const params = new URLSearchParams();
-  if (category && category !== 'all') {
-    params.set('category', category);
-  }
-  if (query) {
-    params.set('q', query);
-  }
+  if (category && category !== 'all') params.set('category', category);
+  if (query) params.set('q', query);
 
   const url = `${SUPABASE_URL}/functions/v1/fetch-news?${params.toString()}`;
   const response = await fetch(url, {
@@ -89,18 +131,13 @@ async function fetchViaEdgeFunction(category?: string, query?: string): Promise<
     },
   });
 
-  if (!response.ok) {
-    throw new Error(`Edge function returned ${response.status}`);
-  }
-
+  if (!response.ok) throw new Error(`Edge function returned ${response.status}`);
   const data = await response.json();
-  if (!data.success) {
-    throw new Error(data.error || 'Edge function failed');
-  }
-
+  if (!data.success) throw new Error(data.error || 'Edge function failed');
   return data.articles as NewsArticle[];
 }
 
+// --- Fetch via direct DB ---
 async function fetchViaDirectDB(category?: string, query?: string): Promise<NewsArticle[]> {
   let dbQuery = supabase
     .from('articles')
@@ -118,34 +155,75 @@ async function fetchViaDirectDB(category?: string, query?: string): Promise<News
   }
 
   const { data, error } = await dbQuery;
-
-  if (error) {
-    console.error('Direct DB error:', error);
-    throw new Error('Failed to fetch news from database');
-  }
-
+  if (error) throw new Error('Failed to fetch news from database');
   return (data || []).map(transformArticle);
 }
 
+// --- Get fallback articles filtered by category ---
+function getFallbackArticles(category?: string, query?: string): NewsArticle[] {
+  let articles = fallbackArticles;
+  if (category && category !== 'all') {
+    const mapped = categoryMap[category.toLowerCase()] || category;
+    articles = articles.filter(a => a.categorySlug === mapped);
+    // If no match for this category, return all
+    if (articles.length === 0) articles = fallbackArticles;
+  }
+  if (query) {
+    const q = query.toLowerCase();
+    articles = articles.filter(a =>
+      a.title.toLowerCase().includes(q) || a.excerpt.toLowerCase().includes(q)
+    );
+  }
+  return articles;
+}
+
+// --- Main fetch with 5-layer resilience ---
 async function fetchNews(category?: string, query?: string): Promise<NewsArticle[]> {
-  // Primary: edge function (works around CORS/network issues)
+  const key = cacheKey(category, query);
+
+  // 1) Same-origin proxy
   try {
-    const articles = await fetchViaEdgeFunction(category, query);
-    console.log(`Fetched ${articles.length} articles via edge function`);
-    return articles;
+    const articles = await fetchViaProxy(category, query);
+    if (articles.length > 0) {
+      saveToCache(key, articles);
+      return articles;
+    }
   } catch (err) {
-    console.warn('Edge function failed, falling back to direct DB:', err);
+    console.warn('Proxy fetch failed:', err);
   }
 
-  // Fallback: direct database query
+  // 2) Direct edge function
+  try {
+    const articles = await fetchViaEdgeFunction(category, query);
+    if (articles.length > 0) {
+      saveToCache(key, articles);
+      return articles;
+    }
+  } catch (err) {
+    console.warn('Edge function failed:', err);
+  }
+
+  // 3) Direct DB
   try {
     const articles = await fetchViaDirectDB(category, query);
-    console.log(`Fetched ${articles.length} articles via direct DB`);
-    return articles;
+    if (articles.length > 0) {
+      saveToCache(key, articles);
+      return articles;
+    }
   } catch (err) {
-    console.error('Both fetch methods failed:', err);
-    throw err;
+    console.warn('Direct DB failed:', err);
   }
+
+  // 4) localStorage cache
+  const cached = readFromCache(key);
+  if (cached && cached.length > 0) {
+    console.log('Serving from cache');
+    return cached;
+  }
+
+  // 5) Bundled fallback
+  console.log('Serving fallback articles');
+  return getFallbackArticles(category, query);
 }
 
 const STALE_TIME = 10 * 60 * 1000;
@@ -158,6 +236,7 @@ export function useNews(category?: string, query?: string) {
     staleTime: STALE_TIME,
     gcTime: CACHE_TIME,
     refetchOnWindowFocus: false,
+    retry: false, // We handle retries internally
   });
 }
 
@@ -168,6 +247,7 @@ export function useFeaturedNews() {
     staleTime: STALE_TIME,
     gcTime: CACHE_TIME,
     refetchOnWindowFocus: false,
+    retry: false,
   });
 }
 
@@ -178,6 +258,7 @@ export function useCategoryNews(category: string) {
     staleTime: STALE_TIME,
     gcTime: CACHE_TIME,
     refetchOnWindowFocus: false,
+    retry: false,
   });
 }
 
@@ -189,5 +270,9 @@ export function useSearchNews(query: string) {
     staleTime: STALE_TIME,
     gcTime: CACHE_TIME,
     refetchOnWindowFocus: false,
+    retry: false,
   });
 }
+
+// Export for use in ArticlePage
+export { fetchViaProxy, fetchViaEdgeFunction, fetchViaDirectDB, getFallbackArticles, readFromCache, cacheKey, saveToCache, transformArticle };
