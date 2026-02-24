@@ -3,12 +3,10 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 
-// --- Editor-preview-only backend transport shim ---
-// In the Lovable editor preview (*.lovableproject.com), direct cross-origin
-// requests to Supabase fail. Rewrite them to same-origin /api/cloud/* so the
-// Vite dev-server proxy can forward them.
-// On the deployed preview (*.lovable.app) and production, requests go directly
-// to Supabase — no rewriting needed.
+// --- Backend transport shim ---
+// Rewrite cross-origin Supabase requests to same-origin /api/cloud/* so they
+// go through the hosting proxy (Vite dev proxy, Vercel rewrites, _redirects).
+// This avoids CORS / network failures in preview and deployed environments.
 const SUPABASE_ORIGIN = (import.meta.env.VITE_SUPABASE_URL || "").replace(/\/$/, "");
 
 if (
@@ -16,12 +14,8 @@ if (
   typeof window !== "undefined" &&
   !(window as any).__lovable_fetch_patched
 ) {
-  // Only activate on the editor preview domain
-  const isEditorPreview = window.location.hostname.endsWith(".lovableproject.com");
-
-  if (isEditorPreview) {
-    const _origFetch = window.fetch;
-    window.fetch = function patchedFetch(
+  const _origFetch = window.fetch;
+  window.fetch = function patchedFetch(
       input: RequestInfo | URL,
       init?: RequestInit
     ) {
@@ -47,9 +41,8 @@ if (
         // Fall through to original fetch on any rewrite error
       }
       return _origFetch.call(this, input, init);
-    };
-    (window as any).__lovable_fetch_patched = true;
-  }
+  };
+  (window as any).__lovable_fetch_patched = true;
 }
 
 createRoot(document.getElementById("root")!).render(
