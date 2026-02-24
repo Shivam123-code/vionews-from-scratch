@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api/cloud/:path*",
+      "destination": "https://astgtlzsojrtxmubezpt.supabase.co/:path*"
+    },
+    {
       "source": "/api/news/:path*",
       "destination": "https://astgtlzsojrtxmubezpt.supabase.co/functions/v1/:path*"
     },

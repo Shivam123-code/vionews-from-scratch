@@ -97,6 +97,16 @@ function readFromCache(key: string): NewsArticle[] | null {
   }
 }
 
+// --- Helper: validate response is JSON, not HTML (SPA fallback) ---
+async function parseJsonResponse(response: Response, label: string): Promise<any> {
+  if (!response.ok) throw new Error(`${label} returned ${response.status}`);
+  const ct = response.headers.get('content-type') || '';
+  if (ct.includes('text/html')) throw new Error(`${label} returned HTML instead of JSON`);
+  const data = await response.json();
+  if (!data.success) throw new Error(data.error || `${label} failed`);
+  return data;
+}
+
 // --- Fetch via same-origin proxy (no CORS issues) ---
 async function fetchViaProxy(category?: string, query?: string): Promise<NewsArticle[]> {
   const params = new URLSearchParams();
@@ -111,9 +121,7 @@ async function fetchViaProxy(category?: string, query?: string): Promise<NewsArt
     },
   });
 
-  if (!response.ok) throw new Error(`Proxy returned ${response.status}`);
-  const data = await response.json();
-  if (!data.success) throw new Error(data.error || 'Proxy fetch failed');
+  const data = await parseJsonResponse(response, 'Proxy');
   return data.articles as NewsArticle[];
 }
 
@@ -131,9 +139,7 @@ async function fetchViaEdgeFunction(category?: string, query?: string): Promise<
     },
   });
 
-  if (!response.ok) throw new Error(`Edge function returned ${response.status}`);
-  const data = await response.json();
-  if (!data.success) throw new Error(data.error || 'Edge function failed');
+  const data = await parseJsonResponse(response, 'Edge function');
   return data.articles as NewsArticle[];
 }
 

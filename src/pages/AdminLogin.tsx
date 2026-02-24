@@ -54,7 +54,10 @@ export default function AdminLogin() {
     });
 
     if (error) {
-      toast.error(error.message);
+      const msg = error.message?.includes('Failed to fetch')
+        ? 'Connection issue. Please try again in a moment.'
+        : error.message;
+      toast.error(msg);
     }
     
     setIsSubmitting(false);
@@ -71,7 +74,10 @@ export default function AdminLogin() {
     });
 
     if (error) {
-      toast.error(error.message);
+      const msg = error.message?.includes('Failed to fetch')
+        ? 'Connection issue. Please try again in a moment.'
+        : error.message;
+      toast.error(msg);
     } else {
       toast.success('Password reset email sent! Check your inbox.');
     }
