@@ -19,41 +19,82 @@ export interface NewsArticle {
   source?: string;
 }
 
-interface NewsResponse {
-  success: boolean;
-  articles: NewsArticle[];
-  totalResults?: number;
-  hasMore?: boolean;
-  error?: string;
+function getRelativeTime(dateString: string | null): string {
+  if (!dateString) return "Recently";
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 60) return `${diffMins} min${diffMins !== 1 ? 's' : ''} ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+  return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
 }
 
+function formatDate(dateString: string | null): string {
+  if (!dateString) return new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+function transformArticle(article: any): NewsArticle {
+  return {
+    id: article.id,
+    slug: article.slug,
+    title: article.title,
+    excerpt: article.excerpt || '',
+    content: article.content || '',
+    category: article.category,
+    categorySlug: article.category_slug,
+    time: getRelativeTime(article.published_at),
+    date: formatDate(article.published_at),
+    author: article.author || 'VioNews',
+    authorRole: article.author_role || 'Correspondent',
+    image: article.image_url || 'https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800&h=600&fit=crop',
+    views: article.views || '0K',
+    link: article.source_url,
+    source: article.source_name,
+  };
+}
+
+const categoryMap: Record<string, string> = {
+  tech: 'technology',
+  science: 'science',
+  world: 'world',
+  business: 'business',
+  entertainment: 'entertainment',
+  sports: 'sports',
+  politics: 'politics',
+  health: 'health',
+};
+
 async function fetchNews(category?: string, query?: string): Promise<NewsArticle[]> {
-  const params: Record<string, string> = {};
+  let dbQuery = supabase
+    .from('articles')
+    .select('*')
+    .order('published_at', { ascending: false })
+    .limit(20);
+
   if (category && category !== 'all') {
-    params.category = category;
+    const mapped = categoryMap[category.toLowerCase()] || category;
+    dbQuery = dbQuery.eq('category_slug', mapped);
   }
+
   if (query) {
-    params.q = query;
+    dbQuery = dbQuery.or(`title.ilike.%${query}%,excerpt.ilike.%${query}%`);
   }
 
-  const queryString = new URLSearchParams(params).toString();
-  const url = queryString ? `fetch-news?${queryString}` : 'fetch-news';
-
-  const { data, error } = await supabase.functions.invoke<NewsResponse>(url);
+  const { data, error } = await dbQuery;
 
   if (error) {
     console.error('Error fetching news:', error);
     throw new Error('Failed to fetch news');
   }
 
-  if (!data?.success) {
-    throw new Error(data?.error || 'Failed to fetch news');
-  }
-
-  return data.articles;
+  return (data || []).map(transformArticle);
 }
 
-// Cache configuration - 10 minutes stale time to reduce API calls
 const STALE_TIME = 10 * 60 * 1000;
 const CACHE_TIME = 15 * 60 * 1000;
 
@@ -68,7 +109,6 @@ export function useNews(category?: string, query?: string) {
 }
 
 export function useFeaturedNews() {
-  // Use the same queryKey as useCategoryNews('world') to share cache
   return useQuery({
     queryKey: ['news', 'world', undefined],
     queryFn: () => fetchNews('world'),
