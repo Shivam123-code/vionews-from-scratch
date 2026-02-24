@@ -85,9 +85,11 @@ export function useAuth() {
       }
     );
 
-    // THEN get current session
-    supabase.auth
-      .getSession()
+    // THEN get current session — with a safety timeout so isLoading never stays
+    // true forever (e.g. if the network request hangs on a deployed domain).
+    const sessionPromise = supabase.auth.getSession();
+
+    withTimeout(sessionPromise, 8000)
       .then(({ data: { session } }) => {
         if (cancelled) return;
         applySession(session);
@@ -97,8 +99,15 @@ export function useAuth() {
         setAuthState({ user: null, session: null, isAdmin: false, adminChecked: true, isLoading: false });
       });
 
+    // Extra safety net: force isLoading=false after 10 s no matter what
+    const safetyTimer = window.setTimeout(() => {
+      if (cancelled) return;
+      setAuthState((prev) => (prev.isLoading ? { ...prev, isLoading: false, adminChecked: true } : prev));
+    }, 10000);
+
     return () => {
       cancelled = true;
+      window.clearTimeout(safetyTimer);
       subscription.unsubscribe();
     };
   }, []);
