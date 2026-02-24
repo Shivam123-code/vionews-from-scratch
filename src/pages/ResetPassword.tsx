@@ -44,7 +44,10 @@ export default function ResetPassword() {
     const { error } = await supabase.auth.updateUser({ password });
 
     if (error) {
-      toast.error(error.message);
+      const msg = error.message?.includes('Failed to fetch')
+        ? 'Connection issue. Please try again in a moment.'
+        : error.message;
+      toast.error(msg);
     } else {
       toast.success('Password updated successfully!');
       navigate('/admin');

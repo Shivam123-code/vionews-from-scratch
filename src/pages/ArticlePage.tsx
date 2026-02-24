@@ -130,10 +130,13 @@ export default function ArticlePage() {
       });
 
       if (error) {
-        console.error("Error generating article:", error);
+        const isNetwork = String(error?.message || error).includes('Failed to fetch');
+        console.warn("Article generation error:", error);
         toast({
           title: "Could not generate full article",
-          description: "Showing available content instead.",
+          description: isNetwork
+            ? "Connection issue. Showing available content."
+            : "Showing available content instead.",
           variant: "destructive",
         });
         return;
