@@ -69,7 +69,39 @@ const categoryMap: Record<string, string> = {
   health: 'health',
 };
 
-async function fetchNews(category?: string, query?: string): Promise<NewsArticle[]> {
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+async function fetchViaEdgeFunction(category?: string, query?: string): Promise<NewsArticle[]> {
+  const params = new URLSearchParams();
+  if (category && category !== 'all') {
+    params.set('category', category);
+  }
+  if (query) {
+    params.set('q', query);
+  }
+
+  const url = `${SUPABASE_URL}/functions/v1/fetch-news?${params.toString()}`;
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'apikey': SUPABASE_ANON_KEY,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Edge function returned ${response.status}`);
+  }
+
+  const data = await response.json();
+  if (!data.success) {
+    throw new Error(data.error || 'Edge function failed');
+  }
+
+  return data.articles as NewsArticle[];
+}
+
+async function fetchViaDirectDB(category?: string, query?: string): Promise<NewsArticle[]> {
   let dbQuery = supabase
     .from('articles')
     .select('*')
@@ -88,11 +120,32 @@ async function fetchNews(category?: string, query?: string): Promise<NewsArticle
   const { data, error } = await dbQuery;
 
   if (error) {
-    console.error('Error fetching news:', error);
-    throw new Error('Failed to fetch news');
+    console.error('Direct DB error:', error);
+    throw new Error('Failed to fetch news from database');
   }
 
   return (data || []).map(transformArticle);
+}
+
+async function fetchNews(category?: string, query?: string): Promise<NewsArticle[]> {
+  // Primary: edge function (works around CORS/network issues)
+  try {
+    const articles = await fetchViaEdgeFunction(category, query);
+    console.log(`Fetched ${articles.length} articles via edge function`);
+    return articles;
+  } catch (err) {
+    console.warn('Edge function failed, falling back to direct DB:', err);
+  }
+
+  // Fallback: direct database query
+  try {
+    const articles = await fetchViaDirectDB(category, query);
+    console.log(`Fetched ${articles.length} articles via direct DB`);
+    return articles;
+  } catch (err) {
+    console.error('Both fetch methods failed:', err);
+    throw err;
+  }
 }
 
 const STALE_TIME = 10 * 60 * 1000;
