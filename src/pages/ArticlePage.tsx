@@ -4,7 +4,7 @@ import { Clock, ArrowLeft, Share2, Bookmark, Facebook, Twitter, Loader2 } from "
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { TrendingNews } from "@/components/TrendingNews";
-import { NewsArticle } from "@/hooks/useNews";
+import { NewsArticle, fetchViaProxy, fetchViaEdgeFunction, readFromCache, getFallbackArticles, transformArticle } from "@/hooks/useNews";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -41,52 +41,28 @@ export default function ArticlePage() {
     if (stateArticle) return;
     if (!slug) return;
 
-    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-    const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-    const transformDbArticle = (data: any): NewsArticle => ({
-      id: data.id,
-      slug: data.slug,
-      title: data.title,
-      excerpt: data.excerpt || "",
-      content: data.content || "",
-      image: data.image_url || "https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800&h=600&fit=crop",
-      category: data.category,
-      categorySlug: data.category_slug,
-      date: new Date(data.published_at || data.created_at).toLocaleDateString(),
-      time: new Date(data.published_at || data.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      author: data.author || "VioNews",
-      authorRole: data.author_role || "",
-      views: data.views || "0",
-      source: data.source_name || undefined,
-      link: data.source_url || undefined,
-    });
-
     const fetchArticle = async () => {
       setIsLoadingArticle(true);
+      
+      // Helper to find article by slug from a list
+      const findBySlug = (articles: NewsArticle[]) => 
+        articles.find(a => a.slug === slug);
+
+      // 1) Try proxy
       try {
-        // Primary: fetch via edge function to avoid CORS issues
-        const url = `${SUPABASE_URL}/functions/v1/fetch-news?q=${encodeURIComponent(slug.replace(/-/g, ' '))}&limit=1`;
-        const response = await fetch(url, {
-          headers: {
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-            'apikey': SUPABASE_ANON_KEY,
-          },
-        });
+        const articles = await fetchViaProxy(undefined, slug.replace(/-/g, ' '));
+        const match = findBySlug(articles) || articles[0];
+        if (match) { setArticle(match); setIsLoadingArticle(false); return; }
+      } catch { /* continue */ }
 
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success && result.articles?.length > 0) {
-            const match = result.articles.find((a: any) => a.slug === slug) || result.articles[0];
-            setArticle(match);
-            return;
-          }
-        }
-      } catch (err) {
-        console.warn("Edge function fetch failed, trying direct DB:", err);
-      }
+      // 2) Try direct edge function
+      try {
+        const articles = await fetchViaEdgeFunction(undefined, slug.replace(/-/g, ' '));
+        const match = findBySlug(articles) || articles[0];
+        if (match) { setArticle(match); setIsLoadingArticle(false); return; }
+      } catch { /* continue */ }
 
-      // Fallback: direct database query
+      // 3) Try direct DB
       try {
         const { data, error } = await supabase
           .from("articles")
@@ -95,13 +71,27 @@ export default function ArticlePage() {
           .maybeSingle();
 
         if (data && !error) {
-          setArticle(transformDbArticle(data));
+          setArticle(transformArticle(data));
+          setIsLoadingArticle(false);
+          return;
         }
-      } catch (err) {
-        console.error("Error fetching article:", err);
-      } finally {
-        setIsLoadingArticle(false);
+      } catch { /* continue */ }
+
+      // 4) Try localStorage cache
+      const allCacheKeys = ['vionews:all:', 'vionews:world:', 'vionews:business:', 'vionews:sports:', 'vionews:technology:', 'vionews:entertainment:', 'vionews:science:'];
+      for (const key of allCacheKeys) {
+        const cached = readFromCache(key);
+        if (cached) {
+          const match = findBySlug(cached);
+          if (match) { setArticle(match); setIsLoadingArticle(false); return; }
+        }
       }
+
+      // 5) Try fallback data
+      const fallbackMatch = findBySlug(getFallbackArticles());
+      if (fallbackMatch) { setArticle(fallbackMatch); setIsLoadingArticle(false); return; }
+
+      setIsLoadingArticle(false);
     };
 
     fetchArticle();
