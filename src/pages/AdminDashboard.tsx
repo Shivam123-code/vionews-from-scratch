@@ -134,8 +134,8 @@ export default function AdminDashboard() {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link to="/" className="flex items-center gap-1.5">
-              <Zap className="h-6 w-6 text-primary fill-primary" />
-              <span className="text-xl font-bold"><span className="text-primary">Vio</span>News</span>
+              <Zap className="h-6 w-6 text-logo fill-logo" />
+              <span className="text-xl font-bold"><span className="text-logo">Vio</span>News</span>
             </Link>
             <Badge variant="secondary">Admin</Badge>
           </div>
