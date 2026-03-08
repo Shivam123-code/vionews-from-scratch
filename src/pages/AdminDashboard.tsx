@@ -32,15 +32,20 @@ import {
   LogOut,
   Search,
   Home,
-  Newspaper,
+  Zap,
+  RefreshCw,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export default function AdminDashboard() {
   const { user, isAdmin, adminChecked, isLoading, signOut } = useAuth();
-  const { data: articles, isLoading: articlesLoading } = useAdminArticles();
+  const { data: articles, isLoading: articlesLoading, refetch } = useAdminArticles();
   const deleteArticle = useDeleteArticle();
   const [searchQuery, setSearchQuery] = useState('');
+  const [isFetching, setIsFetching] = useState(false);
+  const { toast } = useToast();
 
   if (isLoading || (user && !adminChecked)) {
     return (
@@ -64,18 +69,57 @@ export default function AdminDashboard() {
     await signOut();
   };
 
+  const handleRefreshNews = async () => {
+    setIsFetching(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('refresh-news');
+
+      if (error) {
+        toast({
+          title: 'Fetch failed',
+          description: error.message || 'Could not refresh news',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'News refreshed',
+          description: data?.message || 'Articles fetched successfully',
+        });
+        refetch();
+      }
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description: 'Failed to trigger news fetch',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsFetching(false);
+    }
+  };
+
   const getCategoryColor = (category: string) => {
     const colors: Record<string, string> = {
-      World: 'bg-blue-500',
-      Business: 'bg-green-500',
-      Technology: 'bg-cyan-500',
-      Entertainment: 'bg-purple-500',
-      Sports: 'bg-orange-500',
-      Science: 'bg-teal-500',
-      Health: 'bg-red-500',
+      World: 'bg-news-world',
+      Business: 'bg-news-business',
+      Technology: 'bg-news-tech',
+      Politics: 'bg-news-politics',
+      Sports: 'bg-news-sports',
     };
     return colors[category] || 'bg-muted';
   };
+
+  // Stats
+  const todayCount = articles?.filter((a) => {
+    const date = new Date(a.created_at);
+    const today = new Date();
+    return date.toDateString() === today.toDateString();
+  }).length || 0;
+
+  const categoryCounts: Record<string, number> = {};
+  articles?.forEach((a) => {
+    categoryCounts[a.category] = (categoryCounts[a.category] || 0) + 1;
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -83,11 +127,13 @@ export default function AdminDashboard() {
       <header className="border-b bg-card sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link to="/" className="flex items-center gap-2">
-              <Newspaper className="h-6 w-6 text-primary" />
-              <span className="news-headline text-xl">VioNews</span>
+            <Link to="/" className="flex items-center gap-1.5">
+              <Zap className="h-6 w-6 text-primary fill-primary" />
+              <span className="text-xl font-bold">
+                <span className="text-primary">Vio</span>News
+              </span>
             </Link>
-            <Badge variant="secondary">Admin Panel</Badge>
+            <Badge variant="secondary">Admin</Badge>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" asChild>
@@ -107,10 +153,48 @@ export default function AdminDashboard() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="news-headline text-3xl mb-2">Article Management</h1>
+          <h1 className="text-3xl font-bold mb-2">Article Management</h1>
           <p className="text-muted-foreground">
             Create, edit, and manage all news articles
           </p>
+        </div>
+
+        {/* Stats */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+          <div className="rounded-lg border bg-card p-6">
+            <p className="text-sm text-muted-foreground">Total Articles</p>
+            <p className="text-3xl font-bold">{articles?.length || 0}</p>
+          </div>
+          <div className="rounded-lg border bg-card p-6">
+            <p className="text-sm text-muted-foreground">Today</p>
+            <p className="text-3xl font-bold">{todayCount}</p>
+          </div>
+          <div className="rounded-lg border bg-card p-6">
+            <p className="text-sm text-muted-foreground">Categories</p>
+            <div className="flex flex-wrap gap-1 mt-2">
+              {Object.entries(categoryCounts).slice(0, 5).map(([cat, count]) => (
+                <Badge key={cat} variant="secondary" className="text-xs">
+                  {cat}: {count}
+                </Badge>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-lg border bg-card p-6">
+            <p className="text-sm text-muted-foreground mb-3">News Fetch</p>
+            <Button
+              onClick={handleRefreshNews}
+              disabled={isFetching}
+              size="sm"
+              className="w-full gap-2"
+            >
+              {isFetching ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              {isFetching ? 'Fetching...' : 'Fetch Now'}
+            </Button>
+          </div>
         </div>
 
         {/* Actions Bar */}
@@ -166,6 +250,7 @@ export default function AdminDashboard() {
                               src={article.image_url}
                               alt=""
                               className="w-12 h-12 rounded object-cover"
+                              loading="lazy"
                             />
                           )}
                           <div className="min-w-0">
@@ -243,31 +328,6 @@ export default function AdminDashboard() {
             </Table>
           </div>
         )}
-
-        {/* Stats */}
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-lg border bg-card p-6">
-            <p className="text-sm text-muted-foreground">Total Articles</p>
-            <p className="text-3xl font-bold">{articles?.length || 0}</p>
-          </div>
-          <div className="rounded-lg border bg-card p-6">
-            <p className="text-sm text-muted-foreground">Categories</p>
-            <p className="text-3xl font-bold">
-              {new Set(articles?.map((a) => a.category)).size || 0}
-            </p>
-          </div>
-          <div className="rounded-lg border bg-card p-6">
-            <p className="text-sm text-muted-foreground">This Week</p>
-            <p className="text-3xl font-bold">
-              {articles?.filter((a) => {
-                const date = new Date(a.created_at);
-                const weekAgo = new Date();
-                weekAgo.setDate(weekAgo.getDate() - 7);
-                return date > weekAgo;
-              }).length || 0}
-            </p>
-          </div>
-        </div>
       </main>
     </div>
   );

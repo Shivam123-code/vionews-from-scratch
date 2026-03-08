@@ -26,8 +26,83 @@ interface NewsDataResponse {
   nextPage?: string;
 }
 
-// Categories to fetch
-const CATEGORIES = ['world', 'business', 'entertainment', 'sports', 'science', 'technology'];
+// Only these 5 categories
+const CATEGORIES = ['world', 'business', 'technology', 'politics', 'sports'];
+
+const CATEGORY_DISPLAY: Record<string, string> = {
+  world: 'World',
+  business: 'Business',
+  technology: 'Technology',
+  politics: 'Politics',
+  sports: 'Sports',
+};
+
+// AI prompt for generating original article content + SEO fields
+const SYSTEM_PROMPT = `You are a senior news journalist at VioNews, a professional digital news platform for US readers. You write original, factual, engaging news articles.
+
+STRICT RULES:
+- Write 100% original content. NEVER copy sentences from any source material.
+- Use the provided headline and summary ONLY as a reference for the topic.
+- Write for a US English-speaking audience.
+- Use journalistic tone: neutral, factual, professional.
+- NEVER use these phrases: "As an AI", "According to our system", "In conclusion", "In summary", "It remains to be seen", "Only time will tell"
+- Every article must read like it was written by a human journalist.
+- Vary your opening sentence structure — do NOT start every article the same way.
+- Write in third person. Do not address the reader directly.`;
+
+function buildArticlePrompt(title: string, description: string, category: string): string {
+  return `Write an original news article based on this topic reference:
+
+TOPIC: ${title}
+SUMMARY: ${description}
+CATEGORY: ${category}
+
+Write exactly 4 paragraphs (400-500 words total):
+Paragraph 1: Key facts — what happened, who is involved, when, and where.
+Paragraph 2: Background and context — why this is happening, relevant history.
+Paragraph 3: Why this matters specifically to US readers — economic impact, policy implications, or cultural relevance to Americans.
+Paragraph 4: Expert outlook — what analysts or officials expect to happen next, potential consequences.
+
+Separate paragraphs with double newlines. Do NOT include any headings, bullet points, or markdown formatting. Just plain text paragraphs.`;
+}
+
+function buildSeoPrompt(title: string, description: string, category: string): string {
+  return `Based on this news article topic, generate SEO metadata:
+
+TOPIC: ${title}
+SUMMARY: ${description}
+CATEGORY: ${category}
+
+Requirements:
+- seo_title: Exactly 50-60 characters, keyword-rich, compelling for search results
+- meta_description: Exactly 150-155 characters, includes primary keyword, compelling click-through
+- slug: Lowercase, hyphenated, clean URL slug. Example format: openai-releases-gpt5-march-2025. NO numbers or special characters at the end. NO trailing hyphens.
+- keywords: Array of exactly 5-7 relevant keywords/phrases for this article`;
+}
+
+// Check title similarity using simple word overlap
+function titlesSimilar(title1: string, title2: string): boolean {
+  const normalize = (t: string) => t.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 3);
+  const words1 = normalize(title1);
+  const words2 = normalize(title2);
+  if (words1.length === 0 || words2.length === 0) return false;
+  const overlap = words1.filter(w => words2.includes(w)).length;
+  const similarity = overlap / Math.max(words1.length, words2.length);
+  return similarity > 0.6;
+}
+
+// Clean slug: lowercase, hyphenated, no trailing numbers/special chars
+function cleanSlug(raw: string): string {
+  let slug = raw
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+  // Remove trailing numbers
+  slug = slug.replace(/-?\d+$/, '').replace(/-$/, '');
+  return slug || 'article';
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -38,6 +113,7 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get('NEWSDATA_API_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
     if (!apiKey || !supabaseUrl || !supabaseServiceKey) {
       console.error('Missing required environment variables');
@@ -54,14 +130,22 @@ Deno.serve(async (req) => {
     const requestedCategory = url.searchParams.get('category');
     const categoriesToFetch = requestedCategory ? [requestedCategory] : CATEGORIES;
 
+    // Fetch recent titles from DB for deduplication
+    const { data: existingArticles } = await supabase
+      .from('articles')
+      .select('title')
+      .order('created_at', { ascending: false })
+      .limit(200);
+    const existingTitles = (existingArticles || []).map((a: any) => a.title);
+
     let totalInserted = 0;
-    let totalUpdated = 0;
+    let totalSkipped = 0;
     const errors: string[] = [];
 
     for (const category of categoriesToFetch) {
       try {
         console.log(`Fetching ${category} news...`);
-        
+
         const apiUrl = `https://newsdata.io/api/1/latest?apikey=${apiKey}&language=en&category=${category}`;
         const response = await fetch(apiUrl);
         const data: NewsDataResponse = await response.json();
@@ -77,43 +161,151 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Transform and upsert articles
-        const articles = data.results.map((article: NewsDataArticle) => ({
-          id: article.article_id,
-          slug: article.article_id,
-          title: article.title || 'Untitled',
-          excerpt: article.description || article.content?.substring(0, 200) || '',
-          content: article.content || article.description || '',
-          category: article.category?.[0] || category,
-          category_slug: (article.category?.[0] || category).toLowerCase().replace(/\s+/g, '-'),
-          published_at: article.pubDate ? new Date(article.pubDate).toISOString() : new Date().toISOString(),
-          author: article.creator?.[0] || article.source_name || 'VioNews',
-          author_role: 'Correspondent',
-          image_url: article.image_url || 'https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800&h=600&fit=crop',
-          source_name: article.source_name,
-          source_url: article.link,
-          views: `${Math.floor(Math.random() * 100) + 10}K`,
-        }));
+        for (const article of data.results) {
+          if (!article.title || !article.description) continue;
 
-        // Upsert articles (insert or update on conflict)
-        const { data: upsertData, error: upsertError } = await supabase
-          .from('articles')
-          .upsert(articles, { 
-            onConflict: 'id',
-            ignoreDuplicates: false 
-          })
-          .select();
+          // Deduplication: check title similarity
+          const isDuplicate = existingTitles.some(existing => titlesSimilar(existing, article.title));
+          if (isDuplicate) {
+            totalSkipped++;
+            continue;
+          }
 
-        if (upsertError) {
-          console.error(`Upsert error for ${category}:`, upsertError);
-          errors.push(`DB error for ${category}: ${upsertError.message}`);
-        } else {
-          const count = upsertData?.length || 0;
-          totalInserted += count;
-          console.log(`Upserted ${count} articles for ${category}`);
+          // Add to existing titles to prevent duplicates within this batch
+          existingTitles.push(article.title);
+
+          // Generate AI content + SEO fields
+          let generatedContent = '';
+          let seoTitle = article.title.substring(0, 60);
+          let metaDescription = (article.description || '').substring(0, 155);
+          let slug = cleanSlug(article.title.substring(0, 80));
+          let keywords: string[] = [category];
+
+          if (lovableApiKey) {
+            try {
+              // Generate article content
+              const contentRes = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${lovableApiKey}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  model: 'google/gemini-2.5-flash',
+                  messages: [
+                    { role: 'system', content: SYSTEM_PROMPT },
+                    { role: 'user', content: buildArticlePrompt(article.title, article.description || '', CATEGORY_DISPLAY[category] || category) }
+                  ],
+                  max_tokens: 2000,
+                  temperature: 0.75,
+                }),
+              });
+
+              if (contentRes.ok) {
+                const contentData = await contentRes.json();
+                generatedContent = contentData.choices?.[0]?.message?.content || '';
+              } else {
+                const errText = await contentRes.text();
+                console.warn(`AI content generation failed (${contentRes.status}):`, errText.substring(0, 100));
+              }
+
+              // Generate SEO metadata using tool calling
+              const seoRes = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${lovableApiKey}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  model: 'google/gemini-2.5-flash-lite',
+                  messages: [
+                    { role: 'system', content: 'You generate SEO metadata for news articles.' },
+                    { role: 'user', content: buildSeoPrompt(article.title, article.description || '', CATEGORY_DISPLAY[category] || category) }
+                  ],
+                  tools: [{
+                    type: 'function',
+                    function: {
+                      name: 'set_seo_metadata',
+                      description: 'Set the SEO metadata for the article',
+                      parameters: {
+                        type: 'object',
+                        properties: {
+                          seo_title: { type: 'string', description: 'SEO title, 50-60 characters' },
+                          meta_description: { type: 'string', description: 'Meta description, 150-155 characters' },
+                          slug: { type: 'string', description: 'URL slug, lowercase hyphenated' },
+                          keywords: { type: 'array', items: { type: 'string' }, description: '5-7 relevant keywords' },
+                        },
+                        required: ['seo_title', 'meta_description', 'slug', 'keywords'],
+                        additionalProperties: false,
+                      },
+                    },
+                  }],
+                  tool_choice: { type: 'function', function: { name: 'set_seo_metadata' } },
+                  temperature: 0.3,
+                }),
+              });
+
+              if (seoRes.ok) {
+                const seoData = await seoRes.json();
+                const toolCall = seoData.choices?.[0]?.message?.tool_calls?.[0];
+                if (toolCall?.function?.arguments) {
+                  try {
+                    const seoArgs = JSON.parse(toolCall.function.arguments);
+                    seoTitle = (seoArgs.seo_title || seoTitle).substring(0, 60);
+                    metaDescription = (seoArgs.meta_description || metaDescription).substring(0, 155);
+                    slug = cleanSlug(seoArgs.slug || slug);
+                    keywords = seoArgs.keywords || keywords;
+                  } catch { /* use defaults */ }
+                }
+              } else {
+                await seoRes.text(); // consume body
+              }
+
+              // Small delay to avoid rate limiting
+              await new Promise(r => setTimeout(r, 300));
+            } catch (aiErr) {
+              console.warn('AI generation error:', aiErr);
+            }
+          }
+
+          // Build article record
+          const articleRecord = {
+            id: article.article_id,
+            slug: slug,
+            title: article.title,
+            excerpt: (article.description || '').substring(0, 300),
+            content: generatedContent || article.description || '',
+            category: CATEGORY_DISPLAY[category] || category,
+            category_slug: category,
+            published_at: article.pubDate ? new Date(article.pubDate).toISOString() : new Date().toISOString(),
+            author: 'VioNews Staff',
+            author_role: 'Correspondent',
+            image_url: article.image_url || 'https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800&h=600&fit=crop',
+            source_name: article.source_name,
+            source_url: article.link,
+            source_reference: article.title, // Store only original headline
+            seo_title: seoTitle,
+            meta_description: metaDescription,
+            is_published: true,
+            keywords: keywords,
+            views: `${Math.floor(Math.random() * 100) + 10}K`,
+          };
+
+          const { error: insertError } = await supabase
+            .from('articles')
+            .upsert(articleRecord, { onConflict: 'id', ignoreDuplicates: false })
+            .select();
+
+          if (insertError) {
+            console.error(`Insert error:`, insertError.message);
+            errors.push(`DB error: ${insertError.message}`);
+          } else {
+            totalInserted++;
+            console.log(`Inserted: ${article.title.substring(0, 60)}...`);
+          }
         }
 
-        // Small delay between categories to avoid rate limiting
+        // Delay between categories
         await new Promise(r => setTimeout(r, 500));
       } catch (catError) {
         console.error(`Error processing ${category}:`, catError);
@@ -130,9 +322,9 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: `Refreshed ${totalInserted} articles`,
+      JSON.stringify({
+        success: true,
+        message: `Inserted ${totalInserted} articles, skipped ${totalSkipped} duplicates`,
         errors: errors.length > 0 ? errors : undefined
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
