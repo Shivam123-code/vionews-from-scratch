@@ -13,12 +13,10 @@ export function TrendingNews() {
 
   return (
     <aside className="space-y-6">
-
-      {/* Trending Stories */}
       <div className="news-card p-4">
         <div className="flex items-center gap-2 mb-4">
           <TrendingUp className="h-5 w-5 text-primary" />
-          <h3 className="font-display font-bold text-lg">Trending Now</h3>
+          <h3 className="font-bold text-lg">Trending Now</h3>
         </div>
         <div className="space-y-4">
           {isLoading ? (
@@ -34,12 +32,11 @@ export function TrendingNews() {
           ) : trendingStories.length > 0 ? (
             trendingStories.map((story) => (
               <Link
-                to={`/article/${story.slug}`}
-                state={{ article: story }}
+                to={`/${story.categorySlug}/${story.slug}`}
                 key={story.id}
                 className="flex gap-3 group cursor-pointer"
               >
-                <span className="font-display text-2xl font-bold text-primary/30 group-hover:text-primary transition-colors">
+                <span className="text-2xl font-bold text-primary/30 group-hover:text-primary transition-colors">
                   {story.number}
                 </span>
                 <div className="flex-1">

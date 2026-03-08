@@ -1,25 +1,22 @@
 import { Link } from "react-router-dom";
-import { Facebook, Twitter, Instagram, Youtube, Mail } from "lucide-react";
+import { Facebook, Twitter, Instagram, Youtube, Mail, Zap } from "lucide-react";
 
 const footerLinks = {
   categories: [
-    { name: "World", href: "/category/world" },
-    { name: "Business", href: "/category/business" },
-    { name: "Entertainment", href: "/category/entertainment" },
-    { name: "Sports", href: "/category/sports" },
-    { name: "Science", href: "/category/science" },
-    { name: "Tech", href: "/category/tech" },
+    { name: "World", href: "/world" },
+    { name: "Technology", href: "/technology" },
+    { name: "Business", href: "/business" },
+    { name: "Politics", href: "/politics" },
+    { name: "Sports", href: "/sports" },
   ],
   company: [
-    { name: "About Us", href: "#" },
-    { name: "Contact", href: "#" },
-    { name: "Careers", href: "#" },
-    { name: "Advertise", href: "#" },
+    { name: "About Us", href: "/about" },
+    { name: "Contact", href: "/contact" },
+    { name: "Disclaimer", href: "/disclaimer" },
   ],
   legal: [
-    { name: "Privacy Policy", href: "#" },
-    { name: "Terms of Service", href: "#" },
-    { name: "Cookie Policy", href: "#" },
+    { name: "Privacy Policy", href: "/privacy-policy" },
+    { name: "Terms of Service", href: "/terms-of-service" },
   ],
 };
 
@@ -32,21 +29,19 @@ const socialLinks = [
 
 export function Footer() {
   return (
-    <footer className="bg-foreground text-background mt-12">
+    <footer style={{ backgroundColor: 'hsl(var(--header-bg))', color: 'hsl(var(--header-fg))' }} className="mt-12">
       <div className="container py-12">
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="lg:col-span-1">
-            <Link to="/" className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-                <span className="text-primary-foreground font-display font-bold text-xl">V</span>
-              </div>
-              <span className="font-display text-2xl font-bold">
-                <span className="text-primary">VIO</span>
-                <span className="text-background">NEWS</span>
+            <Link to="/" className="flex items-center gap-1.5 mb-4">
+              <Zap className="h-7 w-7 text-primary fill-primary" />
+              <span className="text-2xl font-black tracking-tight">
+                <span className="text-primary">Vio</span>
+                <span style={{ color: 'hsl(var(--header-fg))' }}>News</span>
               </span>
             </Link>
-            <p className="text-background/70 text-sm mb-6">
+            <p className="text-sm mb-6" style={{ color: 'hsl(var(--header-fg) / 0.6)' }}>
               Your trusted source for breaking news, in-depth analysis, and unbiased reporting from around the world.
             </p>
             <div className="flex items-center gap-3">
@@ -56,7 +51,8 @@ export function Footer() {
                   href={social.href}
                   target={social.href !== "#" ? "_blank" : undefined}
                   rel={social.href !== "#" ? "noopener noreferrer" : undefined}
-                  className="w-10 h-10 bg-background/10 hover:bg-primary rounded-full flex items-center justify-center transition-colors"
+                  className="w-10 h-10 rounded-full flex items-center justify-center transition-colors hover:bg-primary"
+                  style={{ backgroundColor: 'hsl(var(--header-fg) / 0.1)' }}
                   aria-label={social.name}
                 >
                   <social.icon className="h-5 w-5" />
@@ -67,13 +63,14 @@ export function Footer() {
 
           {/* Categories */}
           <div>
-            <h3 className="font-display font-bold text-lg mb-4">Categories</h3>
+            <h3 className="font-bold text-lg mb-4">Categories</h3>
             <ul className="space-y-2">
               {footerLinks.categories.map((link) => (
                 <li key={link.name}>
                   <Link
                     to={link.href}
-                    className="text-background/70 hover:text-primary transition-colors text-sm"
+                    className="text-sm transition-colors hover:text-primary"
+                    style={{ color: 'hsl(var(--header-fg) / 0.6)' }}
                   >
                     {link.name}
                   </Link>
@@ -84,16 +81,17 @@ export function Footer() {
 
           {/* Company */}
           <div>
-            <h3 className="font-display font-bold text-lg mb-4">Company</h3>
+            <h3 className="font-bold text-lg mb-4">Company</h3>
             <ul className="space-y-2">
               {footerLinks.company.map((link) => (
                 <li key={link.name}>
-                  <a
-                    href={link.href}
-                    className="text-background/70 hover:text-primary transition-colors text-sm"
+                  <Link
+                    to={link.href}
+                    className="text-sm transition-colors hover:text-primary"
+                    style={{ color: 'hsl(var(--header-fg) / 0.6)' }}
                   >
                     {link.name}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -101,8 +99,8 @@ export function Footer() {
 
           {/* Newsletter */}
           <div>
-            <h3 className="font-display font-bold text-lg mb-4">Newsletter</h3>
-            <p className="text-background/70 text-sm mb-4">
+            <h3 className="font-bold text-lg mb-4">Newsletter</h3>
+            <p className="text-sm mb-4" style={{ color: 'hsl(var(--header-fg) / 0.6)' }}>
               Get the latest news delivered to your inbox daily.
             </p>
             <div className="flex gap-2">
@@ -111,7 +109,12 @@ export function Footer() {
                 <input
                   type="email"
                   placeholder="Your email"
-                  className="w-full pl-10 pr-4 py-2 bg-background/10 border border-background/20 rounded-lg text-background placeholder:text-background/50 focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                  className="w-full pl-10 pr-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  style={{
+                    backgroundColor: 'hsl(var(--header-fg) / 0.1)',
+                    borderColor: 'hsl(var(--header-fg) / 0.2)',
+                    color: 'hsl(var(--header-fg))',
+                  }}
                 />
               </div>
               <button className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium text-sm hover:bg-primary/90 transition-colors">
@@ -122,23 +125,25 @@ export function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="mt-12 pt-8 border-t border-background/10 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-background/50 text-sm">
-            © 2026 VioNews. All rights reserved.
+        <div className="mt-12 pt-8 flex flex-col md:flex-row items-center justify-between gap-4" style={{ borderTopColor: 'hsl(var(--header-fg) / 0.1)', borderTopWidth: '1px' }}>
+          <p className="text-sm" style={{ color: 'hsl(var(--header-fg) / 0.4)' }}>
+            © {new Date().getFullYear()} VioNews. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
             {footerLinks.legal.map((link) => (
-              <a
+              <Link
                 key={link.name}
-                href={link.href}
-                className="text-background/50 hover:text-background transition-colors text-sm"
+                to={link.href}
+                className="text-sm transition-colors hover:text-primary"
+                style={{ color: 'hsl(var(--header-fg) / 0.4)' }}
               >
                 {link.name}
-              </a>
+              </Link>
             ))}
             <Link
               to="/admin/login"
-              className="w-6 h-6 bg-background/20 hover:bg-primary text-background/50 hover:text-primary-foreground rounded flex items-center justify-center text-xs font-bold transition-colors"
+              className="w-6 h-6 rounded flex items-center justify-center text-xs font-bold transition-colors hover:bg-primary hover:text-primary-foreground"
+              style={{ backgroundColor: 'hsl(var(--header-fg) / 0.1)', color: 'hsl(var(--header-fg) / 0.4)' }}
             >
               A
             </Link>
