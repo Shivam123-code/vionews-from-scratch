@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/sitemap.xml",
+      "destination": "https://astgtlzsojrtxmubezpt.supabase.co/functions/v1/generate-sitemap?type=main"
+    },
+    {
+      "source": "/news-sitemap.xml",
+      "destination": "https://astgtlzsojrtxmubezpt.supabase.co/functions/v1/generate-sitemap?type=news"
+    },
+    {
       "source": "/api/cloud/:path*",
       "destination": "https://astgtlzsojrtxmubezpt.supabase.co/:path*"
     },
