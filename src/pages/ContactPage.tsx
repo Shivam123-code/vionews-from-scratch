@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Mail, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 export default function ContactPage() {
   const [name, setName] = useState("");
@@ -12,12 +13,16 @@ export default function ContactPage() {
   const [message, setMessage] = useState("");
   const { toast } = useToast();
 
+  useDocumentMeta({
+    title: "Contact VioNews | Get in Touch",
+    description: "Have a question, tip, or feedback for VioNews? Reach out to our editorial team via email or contact form.",
+    canonical: "https://vionews.in/contact",
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     toast({ title: "Message sent", description: "Thank you for reaching out. We'll get back to you soon." });
-    setName("");
-    setEmail("");
-    setMessage("");
+    setName(""); setEmail(""); setMessage("");
   };
 
   return (
@@ -41,44 +46,17 @@ export default function ContactPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label htmlFor="name" className="block text-sm font-medium mb-2">Name</label>
-            <input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="w-full px-4 py-3 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="Your name"
-            />
+            <input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} required className="w-full px-4 py-3 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary" placeholder="Your name" />
           </div>
           <div>
             <label htmlFor="email" className="block text-sm font-medium mb-2">Email</label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-4 py-3 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="your@email.com"
-            />
+            <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="w-full px-4 py-3 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary" placeholder="your@email.com" />
           </div>
           <div>
             <label htmlFor="message" className="block text-sm font-medium mb-2">Message</label>
-            <textarea
-              id="message"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              required
-              rows={5}
-              className="w-full px-4 py-3 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-              placeholder="Your message..."
-            />
+            <textarea id="message" value={message} onChange={(e) => setMessage(e.target.value)} required rows={5} className="w-full px-4 py-3 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none" placeholder="Your message..." />
           </div>
-          <Button type="submit" className="gap-2">
-            <Send className="h-4 w-4" />
-            Send Message
-          </Button>
+          <Button type="submit" className="gap-2"><Send className="h-4 w-4" />Send Message</Button>
         </form>
       </main>
       <Footer />

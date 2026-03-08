@@ -5,8 +5,16 @@ import { TrendingNews } from "@/components/TrendingNews";
 import { NewsGrid } from "@/components/NewsGrid";
 import { CategorySection } from "@/components/CategorySection";
 import { Footer } from "@/components/Footer";
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 const Index = () => {
+  useDocumentMeta({
+    title: "VioNews — Breaking News & Global Coverage",
+    description: "VioNews delivers breaking news across world events, technology, business, politics and sports — updated every 30 minutes for US readers.",
+    canonical: "https://vionews.in",
+    ogImage: "https://vionews.in/og-default.png",
+  });
+
   return (
     <div className="min-h-screen bg-background">
       <Header />

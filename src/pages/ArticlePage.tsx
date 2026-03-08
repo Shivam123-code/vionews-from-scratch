@@ -1,13 +1,13 @@
-import { useParams, useLocation, Link } from "react-router-dom";
-import { useState, useEffect } from "react";
-import { Clock, ArrowLeft, Share2, Bookmark, Facebook, Twitter, Loader2, MessageCircle, Copy, Check } from "lucide-react";
+import { useParams, useLocation, Link, useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { Clock, ArrowLeft, Share2, Facebook, Twitter, Loader2, MessageCircle, Copy, Check } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { TrendingNews } from "@/components/TrendingNews";
 import { NewsArticle, fetchViaProxy, fetchViaEdgeFunction, readFromCache, getFallbackArticles, transformArticle, categoryDisplayName, useCategoryNews } from "@/hooks/useNews";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useDocumentMeta, buildArticleJsonLd, buildBreadcrumbJsonLd } from "@/hooks/useDocumentMeta";
 
 function getCategoryColor(categorySlug: string): string {
   const colors: Record<string, string> = {
@@ -24,7 +24,6 @@ export default function ArticlePage() {
   const { slug, category } = useParams<{ slug: string; category?: string }>();
   const location = useLocation();
   const stateArticle = location.state?.article as NewsArticle | undefined;
-  const { toast } = useToast();
   const [copied, setCopied] = useState(false);
 
   const [article, setArticle] = useState<NewsArticle | undefined>(stateArticle);
@@ -37,6 +36,42 @@ export default function ArticlePage() {
   const { data: relatedArticles } = useCategoryNews(article?.categorySlug || category || 'world');
   const related = (relatedArticles || []).filter(a => a.id !== article?.id).slice(0, 3);
 
+  // SEO meta
+  const seoMeta = useMemo(() => {
+    if (!article) return null;
+    const catName = categoryDisplayName[article.categorySlug] || article.category;
+    const canonical = `https://vionews.in/${article.categorySlug}/${article.slug}`;
+    return {
+      title: `${article.title} | VioNews`,
+      description: article.excerpt?.slice(0, 155) || article.title,
+      canonical,
+      ogType: "article" as const,
+      ogImage: article.image,
+      jsonLd: [
+        buildArticleJsonLd({
+          title: article.title,
+          seoTitle: article.title,
+          description: article.excerpt || article.title,
+          image: article.image,
+          publishedAt: article.date,
+          categorySlug: article.categorySlug,
+          slug: article.slug,
+        }),
+        buildBreadcrumbJsonLd([
+          { name: "Home", url: "https://vionews.in" },
+          { name: catName, url: `https://vionews.in/${article.categorySlug}` },
+          { name: article.title },
+        ]),
+      ],
+    };
+  }, [article]);
+
+  useDocumentMeta(seoMeta || {
+    title: "Article | VioNews",
+    description: "Read the latest news on VioNews.",
+    canonical: `https://vionews.in/${category || ""}/${slug || ""}`,
+  });
+
   // Fetch article from DB when accessed via direct link
   useEffect(() => {
     if (stateArticle) return;
@@ -44,9 +79,7 @@ export default function ArticlePage() {
 
     const fetchArticle = async () => {
       setIsLoadingArticle(true);
-
-      const findBySlug = (articles: NewsArticle[]) =>
-        articles.find(a => a.slug === slug);
+      const findBySlug = (articles: NewsArticle[]) => articles.find(a => a.slug === slug);
 
       try {
         const articles = await fetchViaProxy(undefined, slug.replace(/-/g, ' '));
@@ -66,7 +99,6 @@ export default function ArticlePage() {
           .select("*")
           .eq("slug", slug)
           .maybeSingle();
-
         if (data && !error) {
           setArticle(transformArticle(data));
           setIsLoadingArticle(false);
@@ -110,7 +142,6 @@ export default function ArticlePage() {
 
   const generateFullArticle = async () => {
     if (!article || isGenerating) return;
-
     setIsGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke("generate-article", {
@@ -121,13 +152,7 @@ export default function ArticlePage() {
           source: article.source || article.author,
         },
       });
-
-      if (error) {
-        console.warn("Article generation error:", error);
-        return;
-      }
-
-      if (data?.success && data?.content) {
+      if (!error && data?.success && data?.content) {
         setFullContent(data.content);
       }
     } catch (err) {
@@ -175,10 +200,7 @@ export default function ArticlePage() {
 
   const categoryColor = getCategoryColor(article.categorySlug);
   const displayContent = (hasRealContent(article.content) ? article.content : null) || fullContent || article.excerpt;
-  const paragraphs = displayContent
-    .split(/\n+/)
-    .filter((p) => p.trim())
-    .map((p) => p.trim());
+  const paragraphs = displayContent.split(/\n+/).filter((p) => p.trim()).map((p) => p.trim());
 
   return (
     <div className="min-h-screen bg-background">
@@ -189,10 +211,7 @@ export default function ArticlePage() {
         <nav className="flex items-center gap-2 mb-6 text-sm" aria-label="Breadcrumb">
           <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">Home</Link>
           <span className="text-muted-foreground">/</span>
-          <Link
-            to={`/${article.categorySlug}`}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
+          <Link to={`/${article.categorySlug}`} className="text-muted-foreground hover:text-foreground transition-colors">
             {categoryDisplayName[article.categorySlug] || article.category}
           </Link>
           <span className="text-muted-foreground">/</span>
@@ -201,16 +220,12 @@ export default function ArticlePage() {
 
         <div className="grid lg:grid-cols-3 gap-8">
           <article className="lg:col-span-2">
-            <Link
-              to={`/${article.categorySlug}`}
-              className={`news-category-badge ${categoryColor} text-white mb-4 inline-block`}
-            >
+            <Link to={`/${article.categorySlug}`} className={`news-category-badge ${categoryColor} text-white mb-4 inline-block`}>
               {article.category}
             </Link>
 
             <h1 className="news-headline text-3xl md:text-4xl lg:text-5xl mb-6">{article.title}</h1>
 
-            {/* Author and Meta */}
             <div className="flex items-center justify-between flex-wrap gap-4 pb-6 mb-6 border-b border-border">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
@@ -229,15 +244,13 @@ export default function ArticlePage() {
               </div>
             </div>
 
-            {/* Featured Image */}
             <div className="aspect-video rounded-lg overflow-hidden mb-8">
               <img
                 src={article.image}
                 alt={article.title}
                 className="w-full h-full object-cover"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src =
-                    "https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800&h=600&fit=crop";
+                  (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800&h=600&fit=crop";
                 }}
               />
             </div>
@@ -245,37 +258,20 @@ export default function ArticlePage() {
             {/* Share buttons */}
             <div className="flex items-center gap-3 mb-8">
               <span className="text-sm font-medium">Share:</span>
-              <button
-                onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(articleUrl)}`, "_blank")}
-                className="p-2 bg-secondary hover:bg-primary hover:text-primary-foreground rounded-full transition-colors"
-                aria-label="Share on Facebook"
-              >
+              <button onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(articleUrl)}`, "_blank")} className="p-2 bg-secondary hover:bg-primary hover:text-primary-foreground rounded-full transition-colors" aria-label="Share on Facebook">
                 <Facebook className="h-4 w-4" />
               </button>
-              <button
-                onClick={() => window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(articleUrl)}&text=${encodeURIComponent(article.title)}`, "_blank")}
-                className="p-2 bg-secondary hover:bg-primary hover:text-primary-foreground rounded-full transition-colors"
-                aria-label="Share on Twitter"
-              >
+              <button onClick={() => window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(articleUrl)}&text=${encodeURIComponent(article.title)}`, "_blank")} className="p-2 bg-secondary hover:bg-primary hover:text-primary-foreground rounded-full transition-colors" aria-label="Share on Twitter">
                 <Twitter className="h-4 w-4" />
               </button>
-              <button
-                onClick={() => window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(article.title + ' ' + articleUrl)}`, "_blank")}
-                className="p-2 bg-secondary hover:bg-primary hover:text-primary-foreground rounded-full transition-colors"
-                aria-label="Share on WhatsApp"
-              >
+              <button onClick={() => window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(article.title + ' ' + articleUrl)}`, "_blank")} className="p-2 bg-secondary hover:bg-primary hover:text-primary-foreground rounded-full transition-colors" aria-label="Share on WhatsApp">
                 <MessageCircle className="h-4 w-4" />
               </button>
-              <button
-                onClick={handleCopyLink}
-                className="p-2 bg-secondary hover:bg-primary hover:text-primary-foreground rounded-full transition-colors"
-                aria-label="Copy link"
-              >
+              <button onClick={handleCopyLink} className="p-2 bg-secondary hover:bg-primary hover:text-primary-foreground rounded-full transition-colors" aria-label="Copy link">
                 {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               </button>
             </div>
 
-            {/* Loading indicator */}
             {isGenerating && (
               <div className="flex items-center gap-3 mb-6 p-4 bg-muted rounded-lg">
                 <Loader2 className="h-5 w-5 animate-spin text-primary" />
@@ -283,42 +279,23 @@ export default function ArticlePage() {
               </div>
             )}
 
-            {/* Article Body */}
             <div className="prose prose-lg max-w-none">
               {paragraphs.map((paragraph, index) => (
-                <p key={index} className="mb-6 text-foreground/90 leading-relaxed text-lg">
-                  {paragraph}
-                </p>
+                <p key={index} className="mb-6 text-foreground/90 leading-relaxed text-lg">{paragraph}</p>
               ))}
             </div>
 
-            {/* Related Articles */}
             {related.length > 0 && (
               <div className="mt-12 pt-8 border-t border-border">
                 <h2 className="text-xl font-bold mb-6">Related Articles</h2>
                 <div className="grid md:grid-cols-3 gap-4">
                   {related.map((rel) => (
-                    <Link
-                      key={rel.id}
-                      to={`/${rel.categorySlug}/${rel.slug}`}
-                      className="news-card group block"
-                    >
+                    <Link key={rel.id} to={`/${rel.categorySlug}/${rel.slug}`} className="news-card group block">
                       <div className="aspect-[4/3] overflow-hidden">
-                        <img
-                          src={rel.image}
-                          alt={rel.title}
-                          loading="lazy"
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src =
-                              "https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800&h=600&fit=crop";
-                          }}
-                        />
+                        <img src={rel.image} alt={rel.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onError={(e) => { (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800&h=600&fit=crop"; }} />
                       </div>
                       <div className="p-3">
-                        <h3 className="text-sm font-semibold line-clamp-2 group-hover:text-primary transition-colors">
-                          {rel.title}
-                        </h3>
+                        <h3 className="text-sm font-semibold line-clamp-2 group-hover:text-primary transition-colors">{rel.title}</h3>
                         <p className="text-xs text-muted-foreground mt-1">{rel.time}</p>
                       </div>
                     </Link>
@@ -327,7 +304,6 @@ export default function ArticlePage() {
               </div>
             )}
 
-            {/* Back button */}
             <div className="mt-8 pt-8 border-t border-border">
               <Link to="/">
                 <Button variant="outline" className="gap-2">
