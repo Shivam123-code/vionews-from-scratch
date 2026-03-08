@@ -35,9 +35,9 @@ export function Footer() {
           {/* Brand */}
           <div className="lg:col-span-1">
             <Link to="/" className="flex items-center gap-1.5 mb-4">
-              <Zap className="h-7 w-7 text-primary fill-primary" />
+              <Zap className="h-7 w-7 text-logo fill-logo" />
               <span className="text-2xl font-black tracking-tight">
-                <span className="text-primary">Vio</span>
+                <span className="text-logo">Vio</span>
                 <span style={{ color: 'hsl(var(--header-fg))' }}>News</span>
               </span>
             </Link>

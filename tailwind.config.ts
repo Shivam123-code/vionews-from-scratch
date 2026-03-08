@@ -50,6 +50,7 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        logo: "hsl(var(--logo))",
         news: {
           live: "hsl(var(--news-live))",
           breaking: "hsl(var(--news-breaking))",

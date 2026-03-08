@@ -43,11 +43,11 @@ export function Header() {
 
         {/* Logo */}
         <Link to="/" className="flex items-center gap-1.5">
-          <span className="text-primary">
-            <Zap className="h-7 w-7 fill-primary" />
+          <span className="text-logo">
+            <Zap className="h-7 w-7 fill-logo" />
           </span>
           <span className="text-2xl md:text-3xl font-black tracking-tight">
-            <span className="text-primary">Vio</span>
+            <span className="text-logo">Vio</span>
             <span style={{ color: 'hsl(var(--header-fg))' }}>News</span>
           </span>
         </Link>
