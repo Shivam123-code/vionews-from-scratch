@@ -1,6 +1,6 @@
 User-agent: *
 Allow: /
 Disallow: /admin
-Disallow: /admin/
 
 Sitemap: https://vionews.in/sitemap.xml
+Sitemap: https://vionews.in/news-sitemap.xml

@@ -125,6 +125,17 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Check auto_publish setting
+    let autoPublish = true;
+    const { data: settingRow } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'auto_publish')
+      .maybeSingle();
+    if (settingRow) {
+      autoPublish = settingRow.value === 'true';
+    }
+
     // Get optional category from request
     const url = new URL(req.url);
     const requestedCategory = url.searchParams.get('category');
@@ -286,7 +297,7 @@ Deno.serve(async (req) => {
             source_reference: article.title, // Store only original headline
             seo_title: seoTitle,
             meta_description: metaDescription,
-            is_published: true,
+            is_published: autoPublish,
             keywords: keywords,
             views: `${Math.floor(Math.random() * 100) + 10}K`,
           };

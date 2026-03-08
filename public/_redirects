@@ -1,3 +1,5 @@
+/sitemap.xml  https://astgtlzsojrtxmubezpt.supabase.co/functions/v1/generate-sitemap?type=main  200
+/news-sitemap.xml  https://astgtlzsojrtxmubezpt.supabase.co/functions/v1/generate-sitemap?type=news  200
 /api/cloud/*  https://astgtlzsojrtxmubezpt.supabase.co/:splat  200
 /api/news/*  https://astgtlzsojrtxmubezpt.supabase.co/functions/v1/:splat  200
 /* /index.html 200

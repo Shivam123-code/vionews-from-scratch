@@ -19,6 +19,10 @@ export interface Article {
   published_at: string | null;
   created_at: string;
   updated_at: string;
+  is_published: boolean | null;
+  seo_title: string | null;
+  meta_description: string | null;
+  keywords: string[] | null;
 }
 
 export interface ArticleFormData {
