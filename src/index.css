@@ -38,6 +38,9 @@
 
     --radius: 0.5rem;
 
+    /* Logo */
+    --logo: 25 95% 53%;
+
     /* Header */
     --header-bg: 225 50% 8%;
     --header-fg: 0 0% 95%;
