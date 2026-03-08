@@ -2,89 +2,92 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
-/* VioNews Design System - Bold News Aesthetic */
+/* VioNews Design System - Clean Professional News */
 
 @layer base {
   :root {
-    --background: 0 0% 98%;
-    --foreground: 220 20% 10%;
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 20% 10%;
+    --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 10%;
+    --popover-foreground: 222 47% 11%;
 
-    --primary: 15 90% 55%;
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 15% 95%;
-    --secondary-foreground: 220 20% 10%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 222 47% 11%;
 
-    --muted: 220 10% 94%;
-    --muted-foreground: 220 10% 45%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
 
-    --accent: 350 85% 55%;
+    --accent: 217 91% 60%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 15% 90%;
-    --input: 220 15% 90%;
-    --ring: 15 90% 55%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 217 91% 60%;
 
     --radius: 0.5rem;
 
-    /* Custom News Colors */
+    /* Header */
+    --header-bg: 225 50% 8%;
+    --header-fg: 0 0% 95%;
+
+    /* News category colors */
     --news-live: 0 85% 50%;
-    --news-breaking: 350 85% 55%;
-    --news-trending: 15 90% 55%;
+    --news-breaking: 0 85% 50%;
+    --news-trending: 217 91% 60%;
     --news-category-world: 210 80% 50%;
     --news-category-business: 145 65% 40%;
-    --news-category-entertainment: 280 70% 55%;
+    --news-category-politics: 262 60% 50%;
     --news-category-sports: 35 95% 50%;
-    --news-category-tech: 200 85% 50%;
+    --news-category-tech: 217 91% 60%;
 
     /* Typography */
-    --font-display: 'Playfair Display', serif;
     --font-body: 'Inter', sans-serif;
 
     /* Shadows */
-    --shadow-news-card: 0 2px 8px -2px rgba(0, 0, 0, 0.1);
-    --shadow-news-card-hover: 0 8px 24px -4px rgba(0, 0, 0, 0.15);
+    --shadow-news-card: 0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
+    --shadow-news-card-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
   }
 
   .dark {
-    --background: 220 20% 8%;
+    --background: 222 47% 6%;
     --foreground: 0 0% 95%;
 
-    --card: 220 20% 12%;
+    --card: 222 47% 10%;
     --card-foreground: 0 0% 95%;
 
-    --popover: 220 20% 12%;
+    --popover: 222 47% 10%;
     --popover-foreground: 0 0% 95%;
 
-    --primary: 15 90% 55%;
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 15% 18%;
+    --secondary: 222 30% 16%;
     --secondary-foreground: 0 0% 95%;
 
-    --muted: 220 15% 18%;
-    --muted-foreground: 220 10% 60%;
+    --muted: 222 30% 16%;
+    --muted-foreground: 220 9% 60%;
 
-    --accent: 350 85% 55%;
+    --accent: 217 91% 60%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 63% 31%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 15% 20%;
-    --input: 220 15% 20%;
-    --ring: 15 90% 55%;
+    --border: 222 30% 18%;
+    --input: 222 30% 18%;
+    --ring: 217 91% 60%;
   }
 }
 
@@ -97,16 +100,11 @@
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-body);
   }
-
-  h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-display);
-  }
 }
 
 @layer components {
   .news-headline {
-    font-family: var(--font-display);
-    @apply font-bold leading-tight tracking-tight;
+    @apply font-extrabold leading-tight tracking-tight;
   }
 
   .news-category-badge {
@@ -133,11 +131,18 @@
   }
 
   .breaking-news-bar {
-    @apply bg-accent text-accent-foreground py-2 overflow-hidden;
+    background-color: hsl(var(--destructive));
+    color: hsl(var(--destructive-foreground));
+    @apply py-2 overflow-hidden;
   }
 
   .nav-link {
-    @apply relative font-medium text-foreground/80 hover:text-foreground transition-colors;
+    @apply relative font-medium transition-colors;
+    color: hsl(var(--header-fg) / 0.7);
+  }
+
+  .nav-link:hover {
+    color: hsl(var(--header-fg));
   }
 
   .nav-link::after {

@@ -6,13 +6,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 function getCategoryColor(categorySlug: string): string {
   const colors: Record<string, string> = {
     world: "bg-news-world",
-    politics: "bg-news-world",
+    politics: "bg-news-politics",
     business: "bg-news-business",
-    entertainment: "bg-news-entertainment",
     sports: "bg-news-sports",
-    tech: "bg-news-tech",
     technology: "bg-news-tech",
-    science: "bg-news-tech",
   };
   return colors[categorySlug] || "bg-primary";
 }
@@ -20,14 +17,14 @@ function getCategoryColor(categorySlug: string): string {
 function ArticleCard({ article }: { article: NewsArticle }) {
   return (
     <Link
-      to={`/article/${article.slug}`}
-      state={{ article }}
+      to={`/${article.categorySlug}/${article.slug}`}
       className="news-card group cursor-pointer block"
     >
       <div className="aspect-[4/3] overflow-hidden relative">
         <img
           src={article.image}
           alt={article.title}
+          loading="lazy"
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           onError={(e) => {
             (e.target as HTMLImageElement).src =
@@ -44,7 +41,7 @@ function ArticleCard({ article }: { article: NewsArticle }) {
         <h3 className="news-headline text-lg mb-2 line-clamp-2 group-hover:text-primary transition-colors">
           {article.title}
         </h3>
-        <p className="text-muted-foreground text-sm line-clamp-2 mb-4 font-body">
+        <p className="text-muted-foreground text-sm line-clamp-2 mb-4">
           {article.excerpt}
         </p>
         <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -74,15 +71,15 @@ function ArticleSkeleton() {
 }
 
 export function NewsGrid() {
-  const { data: articles, isLoading, error } = useNews();
+  const { data: articles, isLoading } = useNews();
 
-  const gridArticles = (articles || []).slice(6, 12);
+  const gridArticles = (articles || []).slice(6, 18);
 
   return (
     <section className="container py-8">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="font-display text-2xl font-bold">Latest Stories</h2>
-        <Link to="/category/world" className="text-primary text-sm font-medium hover:underline">
+        <h2 className="text-2xl font-bold">Latest Stories</h2>
+        <Link to="/world" className="text-primary text-sm font-medium hover:underline">
           View All →
         </Link>
       </div>

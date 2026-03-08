@@ -7,13 +7,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 function getCategoryColor(categorySlug: string): string {
   const colors: Record<string, string> = {
     world: "bg-news-world",
-    politics: "bg-news-world",
+    politics: "bg-news-politics",
     business: "bg-news-business",
-    entertainment: "bg-news-entertainment",
     sports: "bg-news-sports",
-    tech: "bg-news-tech",
     technology: "bg-news-tech",
-    science: "bg-news-tech",
   };
   return colors[categorySlug] || "bg-primary";
 }
@@ -21,8 +18,7 @@ function getCategoryColor(categorySlug: string): string {
 function SideStoryCard({ article }: { article: NewsArticle }) {
   return (
     <Link
-      to={`/article/${article.slug}`}
-      state={{ article }}
+      to={`/${article.categorySlug}/${article.slug}`}
       className="news-card group cursor-pointer block"
     >
       <div className="flex gap-4 p-3">
@@ -30,6 +26,7 @@ function SideStoryCard({ article }: { article: NewsArticle }) {
           <img
             src={article.image}
             alt={article.title}
+            loading="lazy"
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             onError={(e) => {
               (e.target as HTMLImageElement).src =
@@ -115,8 +112,7 @@ export function FeaturedNews() {
         {/* Main featured story */}
         <div className="lg:col-span-2 order-1 lg:order-2">
           <Link
-            to={`/article/${mainArticle.slug}`}
-            state={{ article: mainArticle }}
+            to={`/${mainArticle.categorySlug}/${mainArticle.slug}`}
             className="news-card group cursor-pointer block h-full"
           >
             <div className="relative aspect-[16/10] lg:aspect-auto lg:h-full min-h-[400px] overflow-hidden rounded-lg">
@@ -133,10 +129,10 @@ export function FeaturedNews() {
                 <span className="news-category-badge bg-primary text-primary-foreground mb-3">
                   {mainArticle.category}
                 </span>
-                <h2 className="news-headline text-2xl md:text-3xl lg:text-4xl mb-3">
+                <h1 className="news-headline text-2xl md:text-3xl lg:text-4xl mb-3">
                   {mainArticle.title}
-                </h2>
-                <p className="text-white/80 text-sm md:text-base line-clamp-2 mb-4 font-body">
+                </h1>
+                <p className="text-white/80 text-sm md:text-base line-clamp-2 mb-4">
                   {mainArticle.excerpt}
                 </p>
                 <div className="flex items-center gap-4 text-sm text-white/70">

@@ -9,12 +9,11 @@ export default {
       center: true,
       padding: "1rem",
       screens: {
-        "2xl": "1400px",
+        "2xl": "1280px",
       },
     },
     extend: {
       fontFamily: {
-        display: ['Playfair Display', 'serif'],
         body: ['Inter', 'sans-serif'],
       },
       colors: {
@@ -57,7 +56,7 @@ export default {
           trending: "hsl(var(--news-trending))",
           world: "hsl(var(--news-category-world))",
           business: "hsl(var(--news-category-business))",
-          entertainment: "hsl(var(--news-category-entertainment))",
+          politics: "hsl(var(--news-category-politics))",
           sports: "hsl(var(--news-category-sports))",
           tech: "hsl(var(--news-category-tech))",
         },
@@ -80,16 +79,11 @@ export default {
           from: { transform: "translateX(0)" },
           to: { transform: "translateX(-50%)" },
         },
-        "pulse-dot": {
-          "0%, 100%": { opacity: "1" },
-          "50%": { opacity: "0.5" },
-        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "marquee": "marquee 30s linear infinite",
-        "pulse-dot": "pulse-dot 1.5s ease-in-out infinite",
       },
     },
   },

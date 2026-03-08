@@ -1,17 +1,14 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Menu, Search, X } from "lucide-react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Menu, Search, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
- import { HeaderAd } from "@/components/ads/HeaderAd";
 
 const categories = [
-  { name: "Latest", href: "/" },
-  { name: "World", href: "/category/world" },
-  { name: "Business", href: "/category/business" },
-  { name: "Entertainment", href: "/category/entertainment" },
-  { name: "Sports", href: "/category/sports" },
-  { name: "Science", href: "/category/science" },
-  { name: "Technology", href: "/category/tech" },
+  { name: "World", href: "/world" },
+  { name: "Technology", href: "/technology" },
+  { name: "Business", href: "/business" },
+  { name: "Politics", href: "/politics" },
+  { name: "Sports", href: "/sports" },
 ];
 
 export function Header() {
@@ -19,6 +16,7 @@ export function Header() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,38 +28,37 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-card border-b border-border">
+    <header className="sticky top-0 z-50" style={{ backgroundColor: 'hsl(var(--header-bg))' }}>
       {/* Top bar */}
       <div className="container flex items-center justify-between py-4">
         {/* Mobile menu button */}
         <button
           className="lg:hidden p-2 -ml-2"
+          style={{ color: 'hsl(var(--header-fg))' }}
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          aria-label="Toggle menu"
         >
           {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
 
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2">
-          <div className="flex items-center">
-            <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-              <span className="text-primary-foreground font-display font-bold text-xl">V</span>
-            </div>
-            <span className="font-display text-2xl md:text-3xl font-bold ml-2 tracking-tight">
-              <span className="text-primary">VIO</span>
-              <span className="text-foreground">NEWS</span>
-            </span>
-          </div>
+        <Link to="/" className="flex items-center gap-1.5">
+          <span className="text-primary">
+            <Zap className="h-7 w-7 fill-primary" />
+          </span>
+          <span className="text-2xl md:text-3xl font-black tracking-tight">
+            <span className="text-primary">Vio</span>
+            <span style={{ color: 'hsl(var(--header-fg))' }}>News</span>
+          </span>
         </Link>
 
-         {/* Header Ad - between logo and search */}
-         <HeaderAd />
- 
         {/* Right actions */}
         <div className="flex items-center gap-2 md:gap-4">
           <button
-            className="p-2 hover:bg-secondary rounded-full transition-colors"
+            className="p-2 rounded-full transition-colors"
+            style={{ color: 'hsl(var(--header-fg) / 0.7)' }}
             onClick={() => setIsSearchOpen(!isSearchOpen)}
+            aria-label="Search"
           >
             <Search className="h-5 w-5" />
           </button>
@@ -81,7 +78,7 @@ export function Header() {
               placeholder="Search news..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-secondary rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full pl-12 pr-4 py-3 bg-background rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
               autoFocus
             />
           </div>
@@ -89,14 +86,22 @@ export function Header() {
       )}
 
       {/* Desktop Navigation */}
-      <nav className="hidden lg:block border-t border-border">
+      <nav className="hidden lg:block border-t" style={{ borderColor: 'hsl(var(--header-fg) / 0.1)' }}>
         <div className="container">
           <ul className="flex items-center gap-1 py-2 overflow-x-auto">
+            <li>
+              <Link
+                to="/"
+                className={`nav-link px-4 py-2 text-sm whitespace-nowrap ${location.pathname === '/' ? 'active' : ''}`}
+              >
+                Latest
+              </Link>
+            </li>
             {categories.map((category) => (
               <li key={category.name}>
                 <Link
                   to={category.href}
-                  className="nav-link px-4 py-2 text-sm whitespace-nowrap"
+                  className={`nav-link px-4 py-2 text-sm whitespace-nowrap ${location.pathname === category.href ? 'active' : ''}`}
                 >
                   {category.name}
                 </Link>
@@ -108,14 +113,25 @@ export function Header() {
 
       {/* Mobile Navigation */}
       {isMobileMenuOpen && (
-        <nav className="lg:hidden border-t border-border bg-card">
+        <nav className="lg:hidden border-t" style={{ borderColor: 'hsl(var(--header-fg) / 0.1)', backgroundColor: 'hsl(var(--header-bg))' }}>
           <ul className="container py-4 space-y-1">
+            <li>
+              <Link
+                to="/"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block px-4 py-3 rounded-lg transition-colors"
+                style={{ color: 'hsl(var(--header-fg) / 0.8)' }}
+              >
+                Latest
+              </Link>
+            </li>
             {categories.map((category) => (
               <li key={category.name}>
                 <Link
                   to={category.href}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="block px-4 py-3 rounded-lg hover:bg-secondary transition-colors"
+                  className="block px-4 py-3 rounded-lg transition-colors"
+                  style={{ color: 'hsl(var(--header-fg) / 0.8)' }}
                 >
                   {category.name}
                 </Link>

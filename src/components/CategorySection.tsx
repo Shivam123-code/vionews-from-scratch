@@ -20,7 +20,7 @@ function CategoryBlock({ title, slug, color }: CategoryBlockProps) {
       <div className="space-y-4">
         <div className="flex items-center gap-3">
           <div className={`w-1 h-6 ${color} rounded-full`} />
-          <h2 className="font-display text-xl font-bold">{title}</h2>
+          <h2 className="font-bold text-xl">{title}</h2>
         </div>
         <div className="grid md:grid-cols-2 gap-4">
           <Skeleton className="aspect-[4/3]" />
@@ -39,9 +39,9 @@ function CategoryBlock({ title, slug, color }: CategoryBlockProps) {
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <div className={`w-1 h-6 ${color} rounded-full`} />
-        <h2 className="font-display text-xl font-bold">{title}</h2>
+        <h2 className="font-bold text-xl">{title}</h2>
         <Link
-          to={`/category/${slug}`}
+          to={`/${slug}`}
           className="ml-auto text-primary text-sm font-medium hover:underline"
         >
           More →
@@ -50,14 +50,14 @@ function CategoryBlock({ title, slug, color }: CategoryBlockProps) {
       <div className="grid md:grid-cols-2 gap-4">
         {/* Main article */}
         <Link
-          to={`/article/${mainArticle.slug}`}
-          state={{ article: mainArticle }}
+          to={`/${mainArticle.categorySlug}/${mainArticle.slug}`}
           className="news-card group cursor-pointer block"
         >
           <div className="aspect-[4/3] overflow-hidden relative">
             <img
               src={mainArticle.image}
               alt={mainArticle.title}
+              loading="lazy"
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               onError={(e) => {
                 (e.target as HTMLImageElement).src =
@@ -80,8 +80,7 @@ function CategoryBlock({ title, slug, color }: CategoryBlockProps) {
         <div className="space-y-3">
           {sideArticles.map((article) => (
             <Link
-              to={`/article/${article.slug}`}
-              state={{ article }}
+              to={`/${article.categorySlug}/${article.slug}`}
               key={article.id}
               className="news-card group cursor-pointer block"
             >
@@ -90,6 +89,7 @@ function CategoryBlock({ title, slug, color }: CategoryBlockProps) {
                   <img
                     src={article.image}
                     alt={article.title}
+                    loading="lazy"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src =
@@ -117,19 +117,11 @@ function CategoryBlock({ title, slug, color }: CategoryBlockProps) {
 
 export function CategorySection() {
   return (
-    <section className="container py-8">
-      <div className="grid lg:grid-cols-2 gap-8">
-        <CategoryBlock
-          title="World"
-          slug="world"
-          color="bg-news-world"
-        />
-        <CategoryBlock
-          title="Business"
-          slug="business"
-          color="bg-news-business"
-        />
-      </div>
+    <section className="container py-8 space-y-10">
+      <CategoryBlock title="Technology" slug="technology" color="bg-news-tech" />
+      <CategoryBlock title="Business" slug="business" color="bg-news-business" />
+      <CategoryBlock title="Politics" slug="politics" color="bg-news-politics" />
+      <CategoryBlock title="Sports" slug="sports" color="bg-news-sports" />
     </section>
   );
 }

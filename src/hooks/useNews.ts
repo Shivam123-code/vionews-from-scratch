@@ -39,18 +39,44 @@ function formatDate(dateString: string | null): string {
   return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 }
 
-function transformArticle(article: any): NewsArticle {
+// Map category slugs to normalized values
+const categoryMap: Record<string, string> = {
+  tech: 'technology',
+  science: 'technology',
+  entertainment: 'world',
+  world: 'world',
+  business: 'business',
+  sports: 'sports',
+  politics: 'politics',
+};
+
+// Map category slug to display name
+export const categoryDisplayName: Record<string, string> = {
+  world: 'World',
+  technology: 'Technology',
+  business: 'Business',
+  politics: 'Politics',
+  sports: 'Sports',
+};
+
+function normalizeCategorySlug(slug: string): string {
+  return categoryMap[slug.toLowerCase()] || slug.toLowerCase();
+}
+
+export function transformArticle(article: any): NewsArticle {
+  const rawSlug = article.category_slug || article.category?.toLowerCase() || 'world';
+  const normalizedSlug = normalizeCategorySlug(rawSlug);
   return {
     id: article.id,
     slug: article.slug,
     title: article.title,
     excerpt: article.excerpt || '',
     content: article.content || '',
-    category: article.category,
-    categorySlug: article.category_slug,
+    category: categoryDisplayName[normalizedSlug] || article.category,
+    categorySlug: normalizedSlug,
     time: getRelativeTime(article.published_at),
     date: formatDate(article.published_at),
-    author: article.author || 'VioNews',
+    author: article.author || 'VioNews Staff',
     authorRole: article.author_role || 'Correspondent',
     image: article.image_url || 'https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800&h=600&fit=crop',
     views: article.views || '0K',
@@ -58,17 +84,6 @@ function transformArticle(article: any): NewsArticle {
     source: article.source_name,
   };
 }
-
-const categoryMap: Record<string, string> = {
-  tech: 'technology',
-  science: 'science',
-  world: 'world',
-  business: 'business',
-  entertainment: 'entertainment',
-  sports: 'sports',
-  politics: 'politics',
-  health: 'health',
-};
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -89,7 +104,6 @@ function readFromCache(key: string): NewsArticle[] | null {
     const raw = localStorage.getItem(key);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    // Accept cache up to 1 hour old
     if (Date.now() - parsed.ts > 3600000) return null;
     return parsed.articles as NewsArticle[];
   } catch {
@@ -97,7 +111,6 @@ function readFromCache(key: string): NewsArticle[] | null {
   }
 }
 
-// --- Helper: validate response is JSON, not HTML (SPA fallback) ---
 async function parseJsonResponse(response: Response, label: string): Promise<any> {
   if (!response.ok) throw new Error(`${label} returned ${response.status}`);
   const ct = response.headers.get('content-type') || '';
@@ -107,7 +120,6 @@ async function parseJsonResponse(response: Response, label: string): Promise<any
   return data;
 }
 
-// --- Fetch via same-origin proxy (no CORS issues) ---
 async function fetchViaProxy(category?: string, query?: string): Promise<NewsArticle[]> {
   const params = new URLSearchParams();
   if (category && category !== 'all') params.set('category', category);
@@ -125,7 +137,6 @@ async function fetchViaProxy(category?: string, query?: string): Promise<NewsArt
   return data.articles as NewsArticle[];
 }
 
-// --- Fetch via direct edge function URL ---
 async function fetchViaEdgeFunction(category?: string, query?: string): Promise<NewsArticle[]> {
   const params = new URLSearchParams();
   if (category && category !== 'all') params.set('category', category);
@@ -143,7 +154,6 @@ async function fetchViaEdgeFunction(category?: string, query?: string): Promise<
   return data.articles as NewsArticle[];
 }
 
-// --- Fetch via direct DB ---
 async function fetchViaDirectDB(category?: string, query?: string): Promise<NewsArticle[]> {
   let dbQuery = supabase
     .from('articles')
@@ -152,8 +162,9 @@ async function fetchViaDirectDB(category?: string, query?: string): Promise<News
     .limit(20);
 
   if (category && category !== 'all') {
-    const mapped = categoryMap[category.toLowerCase()] || category;
-    dbQuery = dbQuery.eq('category_slug', mapped);
+    const mapped = normalizeCategorySlug(category);
+    // Match both original and mapped slugs
+    dbQuery = dbQuery.or(`category_slug.eq.${mapped},category_slug.eq.${category}`);
   }
 
   if (query) {
@@ -165,13 +176,11 @@ async function fetchViaDirectDB(category?: string, query?: string): Promise<News
   return (data || []).map(transformArticle);
 }
 
-// --- Get fallback articles filtered by category ---
 function getFallbackArticles(category?: string, query?: string): NewsArticle[] {
   let articles = fallbackArticles;
   if (category && category !== 'all') {
-    const mapped = categoryMap[category.toLowerCase()] || category;
+    const mapped = normalizeCategorySlug(category);
     articles = articles.filter(a => a.categorySlug === mapped);
-    // If no match for this category, return all
     if (articles.length === 0) articles = fallbackArticles;
   }
   if (query) {
@@ -183,52 +192,27 @@ function getFallbackArticles(category?: string, query?: string): NewsArticle[] {
   return articles;
 }
 
-// --- Main fetch with 5-layer resilience ---
 async function fetchNews(category?: string, query?: string): Promise<NewsArticle[]> {
   const key = cacheKey(category, query);
 
-  // 1) Same-origin proxy
   try {
     const articles = await fetchViaProxy(category, query);
-    if (articles.length > 0) {
-      saveToCache(key, articles);
-      return articles;
-    }
-  } catch (err) {
-    console.warn('Proxy fetch failed:', err);
-  }
+    if (articles.length > 0) { saveToCache(key, articles); return articles; }
+  } catch (err) { console.warn('Proxy fetch failed:', err); }
 
-  // 2) Direct edge function
   try {
     const articles = await fetchViaEdgeFunction(category, query);
-    if (articles.length > 0) {
-      saveToCache(key, articles);
-      return articles;
-    }
-  } catch (err) {
-    console.warn('Edge function failed:', err);
-  }
+    if (articles.length > 0) { saveToCache(key, articles); return articles; }
+  } catch (err) { console.warn('Edge function failed:', err); }
 
-  // 3) Direct DB
   try {
     const articles = await fetchViaDirectDB(category, query);
-    if (articles.length > 0) {
-      saveToCache(key, articles);
-      return articles;
-    }
-  } catch (err) {
-    console.warn('Direct DB failed:', err);
-  }
+    if (articles.length > 0) { saveToCache(key, articles); return articles; }
+  } catch (err) { console.warn('Direct DB failed:', err); }
 
-  // 4) localStorage cache
   const cached = readFromCache(key);
-  if (cached && cached.length > 0) {
-    console.log('Serving from cache');
-    return cached;
-  }
+  if (cached && cached.length > 0) return cached;
 
-  // 5) Bundled fallback
-  console.log('Serving fallback articles');
   return getFallbackArticles(category, query);
 }
 
@@ -242,14 +226,14 @@ export function useNews(category?: string, query?: string) {
     staleTime: STALE_TIME,
     gcTime: CACHE_TIME,
     refetchOnWindowFocus: false,
-    retry: false, // We handle retries internally
+    retry: false,
   });
 }
 
 export function useFeaturedNews() {
   return useQuery({
-    queryKey: ['news', 'world', undefined],
-    queryFn: () => fetchNews('world'),
+    queryKey: ['news', 'all', undefined],
+    queryFn: () => fetchNews(),
     staleTime: STALE_TIME,
     gcTime: CACHE_TIME,
     refetchOnWindowFocus: false,
@@ -280,5 +264,4 @@ export function useSearchNews(query: string) {
   });
 }
 
-// Export for use in ArticlePage
-export { fetchViaProxy, fetchViaEdgeFunction, fetchViaDirectDB, getFallbackArticles, readFromCache, cacheKey, saveToCache, transformArticle };
+export { fetchViaProxy, fetchViaEdgeFunction, fetchViaDirectDB, getFallbackArticles, readFromCache, cacheKey, saveToCache };
