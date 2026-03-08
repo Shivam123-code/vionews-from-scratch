@@ -292,7 +292,7 @@ export default function ArticlePage() {
                   {related.map((rel) => (
                     <Link key={rel.id} to={`/${rel.categorySlug}/${rel.slug}`} className="news-card group block">
                       <div className="aspect-[4/3] overflow-hidden">
-                        <img src={rel.image} alt={rel.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onError={(e) => { (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800&h=600&fit=crop"; }} />
+                        <img src={rel.image} alt={rel.title} loading="lazy" width={400} height={300} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onError={(e) => { (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800&h=600&fit=crop"; }} />
                       </div>
                       <div className="p-3">
                         <h3 className="text-sm font-semibold line-clamp-2 group-hover:text-primary transition-colors">{rel.title}</h3>
