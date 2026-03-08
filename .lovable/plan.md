@@ -1,114 +1,161 @@
 
-Goal: make the admin side and public site reliable in preview and production by removing the current backend transport failures, while keeping secure role-based access exactly server-validated (no client-side role trust).
 
-1) What is actually broken (confirmed)
-- Admin login/reset/session checks fail with `TypeError: Failed to fetch` when calling auth endpoints from browser (`signInWithPassword`, `resetPasswordForEmail`, `getSession`, RPC role check).
-- Public news calls still hit fallback because `/api/news/fetch-news` currently returns HTML (SPA index), not JSON.
-- Root cause is transport/routing in preview:
-  - Direct backend domain calls can fail in this environment.
-  - The current `/api/news/*` rewrite is not active in Vite preview, so requests are handled by SPA fallback.
-- Role/RLS model is already correctly structured and secure:
-  - roles are in `user_roles` (separate table),
-  - admin checks use server-side functions (`is_admin` / `has_role`),
-  - policies are PERMISSIVE and valid.
+# VioNews Full SEO & Feature Overhaul Plan
 
-Do I know what the issue is? Yes.
+This is a large, multi-phase plan covering SEO, content pipeline, design, and static pages. Given the scope, I recommend implementing it in batches across multiple messages.
 
-2) Implementation strategy
-I’ll implement a unified “preview-safe backend transport” so all SDK and fetch-based backend calls work through same-origin proxy in preview, while preserving current behavior for published environments.
+---
 
-```text
-Browser code
-  -> (preview only) rewrite backend-origin requests to /api/cloud/*
-  -> Vite dev proxy forwards /api/cloud/* and /api/news/* to backend
-  -> backend responds normally (auth/db/functions/storage)
+## Critical Architecture Change: HashRouter to BrowserRouter
+
+The site currently uses `HashRouter` (URLs like `/#/article/...`). **Google does not properly index hash-based URLs.** For any SEO to work, we must switch to `BrowserRouter`. The Vercel config already has a catch-all rewrite (`/((?!.*\\..*).*) -> /index.html`), so this will work on production.
+
+---
+
+## Phase 1: Database Schema Update
+
+Add SEO columns to the `articles` table:
+
+```sql
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS seo_title text;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS meta_description text;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS source_reference text;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS is_published boolean DEFAULT true;
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS keywords text[];
 ```
 
-3) File-by-file change plan
+---
 
-A) `vite.config.ts` (critical fix)
-- Add `server.proxy` rules:
-  - `/api/news/*` -> backend `/functions/v1/*` (so existing news proxy returns JSON, not HTML).
-  - `/api/cloud/*` -> backend root `/*` (universal proxy for auth/db/functions/storage).
-- Keep existing dev/HMR settings unchanged.
+## Phase 2: Router + URL Structure
 
-B) `src/main.tsx` (critical fix)
-- Install a guarded global `fetch` proxy shim (preview-only):
-  - Detect preview host (lovable preview domain).
-  - Rewrite outgoing requests targeting `VITE_SUPABASE_URL` origin to `/api/cloud/...`.
-  - Leave all non-backend requests untouched.
-- Add an idempotent guard so HMR/StrictMode doesn’t patch fetch repeatedly.
+1. **Switch `HashRouter` to `BrowserRouter`** in `App.tsx`
+2. **New route structure:**
+   - `/` - Homepage
+   - `/world`, `/technology`, `/business`, `/politics`, `/sports` - Category pages (clean URLs, not `/category/:slug`)
+   - `/:category/:slug` - Article pages (e.g. `/technology/openai-gpt5-release`)
+   - `/about`, `/contact`, `/privacy-policy`, `/terms-of-service`, `/disclaimer` - Static pages
+   - `/admin/*` - Admin routes (unchanged)
+3. **Update all `<Link>` references** throughout Header, Footer, cards, etc.
 
-Why this is key:
-- It automatically fixes all SDK-based calls without editing the generated client file:
-  - auth (`signInWithPassword`, `getSession`, password reset, callbacks),
-  - DB reads/writes,
-  - RPC role checks,
-  - storage uploads,
-  - function invokes (`generate-article`).
+---
 
-C) `src/hooks/useNews.ts`
-- Keep resilient fallback chain, but harden proxy behavior:
-  - validate response content-type and payload shape before trusting proxy response;
-  - if proxy returns HTML or invalid JSON, fail fast to next layer.
-- Prefer `/api/cloud/functions/v1/fetch-news` or keep `/api/news/fetch-news` once Vite proxy is added; ensure one canonical primary route.
-- Reduce noisy console warnings and surface cleaner diagnostic logs.
+## Phase 3: Categories Consolidation
 
-D) `src/pages/ArticlePage.tsx`
-- Keep current fallback logic.
-- Add robust generation call behavior:
-  - `supabase.functions.invoke("generate-article")` should work once fetch rewrite is active;
-  - if still failing, show graceful toast and continue rendering available content (no blocking spinner dead-end).
+Reduce to 5 categories only: **World, Technology, Business, Politics, Sports**
+- Update Header navigation
+- Update Footer links
+- Update category mappings in `useNews.ts`, `fetch-news`, `refresh-news`
+- Map old categories: science -> technology, entertainment -> drop/redirect
 
-E) `src/pages/AdminLogin.tsx` and `src/pages/ResetPassword.tsx`
-- Add explicit network-error mapping:
-  - convert low-level `Failed to fetch` into clear user message (“Connection issue to backend. Retrying may help.”).
-- Keep secure server-side auth flow and existing redirects.
-- No client-side admin shortcuts, no localStorage role checks.
+---
 
-F) `public/_redirects` and `vercel.json`
-- Add `/api/cloud/*` rewrite before catch-all SPA rule.
-- Keep existing `/api/news/*` rewrite for compatibility.
-- Ensure ordering prevents fallback-to-index for API paths.
+## Phase 4: Auto-Fetch with AI Content Generation
 
-4) Security and architecture guarantees (no regressions)
-- No role data moved to client.
-- No hardcoded admin credentials.
-- Continue using server-side role validation via `is_admin`.
-- No schema changes needed for this fix.
-- No edits to generated integration files (`src/integrations/supabase/client.ts`, `types.ts`, `.env`).
+Modify the `refresh-news` edge function to:
+1. Fetch from NewsData.io across 5 categories every 30 min (update cron from 15 to 30 min)
+2. **Deduplicate** by checking title similarity before insert
+3. For each new article, call `generate-article` to produce original 400-500 word content with the 4-paragraph structure (key fact, background, US relevance, outlook)
+4. Auto-generate `seo_title` (50-60 chars), `meta_description` (150-155 chars), clean `slug`, and `keywords` via AI tool calling
+5. Store `source_reference` (original API title) and set `is_published = true`
+6. Generate clean slugs: lowercase, hyphenated, no numbers/special chars at end
 
-5) Validation checklist (end-to-end)
-1. Admin login route:
-   - open `/#/admin/login`,
-   - sign in with admin credentials,
-   - confirm no `Failed to fetch` toast.
-2. Admin dashboard:
-   - list articles loads,
-   - edit/create/delete article works,
-   - image upload works.
-3. Password reset:
-   - send reset email,
-   - open reset link,
-   - set new password successfully.
-4. Public site:
-   - homepage sections populated from live backend (not HTML proxy response),
-   - category/search/article pages load correctly.
-5. Article generation:
-   - open article lacking full content,
-   - generate content flow completes or gracefully falls back.
-6. Network verification:
-   - in preview, backend calls go through same-origin `/api/cloud/*` or valid proxied `/api/news/*`,
-   - no API call returns SPA HTML payload.
-7. Mobile check:
-   - verify login and article flows on mobile viewport.
+---
 
-6) Rollout approach
-- Phase 1: transport/proxy fixes (`vite.config.ts`, `main.tsx`, rewrites).
-- Phase 2: hook/page hardening (`useNews`, `ArticlePage`, admin auth UX).
-- Phase 3: end-to-end verification across admin + public pages and cleanup of residual warnings.
+## Phase 5: Per-Page SEO Meta Tags
 
-7) Expected outcome
-- Admin side becomes usable in preview (login + CRUD + reset + role checks).
-- Public side loads live content consistently instead of collapsing to fallback due transport errors.
-- The app remains secure and stable with server-validated authorization.
+Since this is an SPA, we need **client-side meta tag injection**:
+
+1. Create a `useDocumentMeta` hook that updates `<title>`, `<meta name="description">`, OG tags, Twitter cards, and canonical URL via `document.head` manipulation
+2. **Article pages**: inject NewsArticle JSON-LD schema, OG/Twitter tags with article-specific data
+3. **Category pages**: unique title/description per category
+4. **Homepage**: default meta from index.html
+5. **Static pages**: unique titles/descriptions
+
+---
+
+## Phase 6: Design Overhaul
+
+Per the spec: dark navy header (`#0a0f1e`) + white content + electric blue accent (`#3b82f6`) + Inter font (drop Playfair Display):
+
+1. Update CSS variables in `index.css`:
+   - Header background: `#0a0f1e`
+   - Primary color: `#3b82f6` (electric blue)
+   - Font: Inter only (remove Playfair Display import for headers)
+2. Update Header component styling
+3. Add lightning bolt icon to "VioNews" logo
+4. Clean up card designs for Verge/Axios aesthetic
+
+---
+
+## Phase 7: Static Pages
+
+Create 5 new page components:
+- `/about` - AboutPage.tsx
+- `/contact` - ContactPage.tsx (form with name/email/message)
+- `/privacy-policy` - PrivacyPolicyPage.tsx
+- `/terms-of-service` - TermsPage.tsx  
+- `/disclaimer` - DisclaimerPage.tsx
+
+Update Footer links to point to these routes.
+
+---
+
+## Phase 8: Dynamic Sitemap & Robots.txt
+
+Create a `generate-sitemap` edge function that:
+1. Queries all published articles from DB
+2. Generates `/sitemap.xml` with all article URLs + static pages
+3. Generates `/news-sitemap.xml` (Google News format with `<news:publication_date>`, `<news:title>`, `<news:keywords>`)
+4. Returns XML responses
+
+Add Vercel rewrites:
+```json
+{ "source": "/sitemap.xml", "destination": "https://...supabase.co/functions/v1/generate-sitemap?type=main" },
+{ "source": "/news-sitemap.xml", "destination": "https://...supabase.co/functions/v1/generate-sitemap?type=news" }
+```
+
+Update `robots.txt` to the simplified version requested.
+
+---
+
+## Phase 9: Article Page Enhancements
+
+1. Add breadcrumb: Home > Category > Article Title
+2. Add WhatsApp + Copy Link share buttons alongside Facebook/Twitter
+3. Add "Related Articles" section (3 articles from same category) at bottom
+4. Add social share buttons styling
+5. Lazy load images with `loading="lazy"`
+
+---
+
+## Phase 10: Homepage Improvements
+
+1. Category filter tabs on homepage
+2. Show 8-12 latest articles in grid
+3. Hero/featured article at top
+4. Lazy load all images
+5. Loading skeletons (already partially exists)
+
+---
+
+## Phase 11: Admin Dashboard Enhancements
+
+1. Add "Trigger News Fetch" button (calls refresh-news function)
+2. Add stats: articles today, articles by category
+3. Add auto-publish toggle (updates a settings row or flag)
+4. Already has: article CRUD, delete, search
+
+---
+
+## Implementation Order
+
+Given scope, I recommend implementing across **4-5 messages**:
+
+1. **Message 1**: DB migration + BrowserRouter switch + category consolidation + design overhaul
+2. **Message 2**: Auto-fetch pipeline update (refresh-news with AI generation + SEO fields)
+3. **Message 3**: Per-page SEO hooks + article/category page enhancements + static pages
+4. **Message 4**: Dynamic sitemap edge function + robots.txt + admin enhancements
+5. **Message 5**: Testing and polish
+
+Shall I proceed with Message 1?
+
