@@ -5,6 +5,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+const SYSTEM_PROMPT = `You are a senior news journalist at VioNews, a professional digital news platform for US readers. You write original, factual, engaging news articles.
+
+STRICT RULES:
+- Write 100% original content. NEVER copy sentences from any source material.
+- Use the provided headline and summary ONLY as a reference for the topic.
+- Write for a US English-speaking audience.
+- Use journalistic tone: neutral, factual, professional.
+- NEVER use these phrases: "As an AI", "According to our system", "In conclusion", "In summary", "It remains to be seen", "Only time will tell"
+- Every article must read like it was written by a human journalist.
+- Vary your opening sentence structure — do NOT start every article the same way.
+- Write in third person. Do not address the reader directly.
+- Do not fabricate specific quotes, statistics, or facts not implied by the source.`;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -29,31 +42,22 @@ serve(async (req) => {
       );
     }
 
-    const systemPrompt = `You are a professional news journalist writing for VioNews, a reputable international news website. Your task is to expand news article summaries into full, well-written articles.
+    const userPrompt = `Write an original news article based on this topic reference:
 
-Guidelines:
-- Write in a professional, objective journalistic style
-- Expand the provided excerpt into a comprehensive 4-6 paragraph article
-- Include relevant context, background information, and potential implications
-- Maintain factual accuracy based on the provided information
-- Use clear, engaging language appropriate for a general audience
-- Do not fabricate specific quotes, statistics, or facts not implied by the source
-- Structure with a strong lead paragraph, supporting details, and a conclusion
-- Write in third person perspective
-- Keep the tone neutral and informative`;
+TOPIC: ${title}
+SUMMARY: ${excerpt}
+CATEGORY: ${category || 'World News'}
 
-    const userPrompt = `Please write a full news article based on this information:
+Write exactly 4 paragraphs (400-500 words total):
+Paragraph 1: Key facts — what happened, who is involved, when, and where.
+Paragraph 2: Background and context — why this is happening, relevant history.
+Paragraph 3: Why this matters specifically to US readers — economic impact, policy implications, or cultural relevance to Americans.
+Paragraph 4: Expert outlook — what analysts or officials expect to happen next, potential consequences.
 
-Title: ${title}
-Category: ${category || 'World News'}
-Source: ${source || 'News Agency'}
-Summary: ${excerpt}
-
-Write a complete, professional news article expanding on this summary. Make it informative and engaging while staying true to the facts presented.`;
+Separate paragraphs with double newlines. Do NOT include any headings, bullet points, or markdown formatting. Just plain text paragraphs.`;
 
     console.log('Generating article content with AI...');
 
-    // Retry logic for transient errors
     let lastError: Error | null = null;
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
@@ -66,11 +70,11 @@ Write a complete, professional news article expanding on this summary. Make it i
           body: JSON.stringify({
             model: 'google/gemini-2.5-flash',
             messages: [
-              { role: 'system', content: systemPrompt },
+              { role: 'system', content: SYSTEM_PROMPT },
               { role: 'user', content: userPrompt }
             ],
-            max_tokens: 1500,
-            temperature: 0.7,
+            max_tokens: 2000,
+            temperature: 0.75,
           }),
         });
 
@@ -100,9 +104,9 @@ Write a complete, professional news article expanding on this summary. Make it i
           );
         }
 
-        // For 5xx errors, retry
         if (response.status >= 500 && attempt < 3) {
           console.log(`Attempt ${attempt} failed with ${response.status}, retrying...`);
+          await response.text(); // consume body
           await new Promise(r => setTimeout(r, 1000 * attempt));
           continue;
         }
