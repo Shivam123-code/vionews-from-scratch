@@ -297,7 +297,7 @@ Deno.serve(async (req) => {
             source_reference: article.title, // Store only original headline
             seo_title: seoTitle,
             meta_description: metaDescription,
-            is_published: true,
+            is_published: autoPublish,
             keywords: keywords,
             views: `${Math.floor(Math.random() * 100) + 10}K`,
           };
