@@ -33,9 +33,9 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      console.error('LOVABLE_API_KEY not configured');
+    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+    if (!GEMINI_API_KEY) {
+      console.error('GEMINI_API_KEY not configured');
       return new Response(
         JSON.stringify({ success: false, error: 'AI service not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -56,34 +56,36 @@ Paragraph 4: Expert outlook — what analysts or officials expect to happen next
 
 Separate paragraphs with double newlines. Do NOT include any headings, bullet points, or markdown formatting. Just plain text paragraphs.`;
 
-    console.log('Generating article content with AI...');
+    console.log('Generating article content with Google Gemini...');
+
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
     let lastError: Error | null = null;
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
-        const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        const response = await fetch(geminiUrl, {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
-            messages: [
-              { role: 'system', content: SYSTEM_PROMPT },
-              { role: 'user', content: userPrompt }
+            contents: [
+              {
+                role: 'user',
+                parts: [{ text: `${SYSTEM_PROMPT}\n\n${userPrompt}` }]
+              }
             ],
-            max_tokens: 2000,
-            temperature: 0.75,
+            generationConfig: {
+              maxOutputTokens: 2000,
+              temperature: 0.75,
+            },
           }),
         });
 
         if (response.ok) {
           const data = await response.json();
-          const generatedContent = data.choices?.[0]?.message?.content;
+          const generatedContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
           if (generatedContent) {
-            console.log('Article generated successfully');
+            console.log('Article generated successfully via Gemini');
             return new Response(
               JSON.stringify({ success: true, content: generatedContent }),
               { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -92,28 +94,28 @@ Separate paragraphs with double newlines. Do NOT include any headings, bullet po
         }
 
         if (response.status === 429) {
+          if (attempt < 3) {
+            console.log(`Rate limited on attempt ${attempt}, retrying...`);
+            await response.text();
+            await new Promise(r => setTimeout(r, 2000 * attempt));
+            continue;
+          }
           return new Response(
             JSON.stringify({ success: false, error: 'Rate limit exceeded. Please try again later.' }),
             { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
-        if (response.status === 402) {
-          return new Response(
-            JSON.stringify({ success: false, error: 'AI credits exhausted. Please add credits to continue.' }),
-            { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
 
         if (response.status >= 500 && attempt < 3) {
           console.log(`Attempt ${attempt} failed with ${response.status}, retrying...`);
-          await response.text(); // consume body
+          await response.text();
           await new Promise(r => setTimeout(r, 1000 * attempt));
           continue;
         }
 
         const errorText = await response.text();
-        console.error('AI gateway error:', response.status, errorText.substring(0, 200));
-        lastError = new Error(`AI gateway returned ${response.status}`);
+        console.error('Gemini API error:', response.status, errorText.substring(0, 200));
+        lastError = new Error(`Gemini API returned ${response.status}`);
       } catch (err) {
         console.error(`Attempt ${attempt} error:`, err);
         lastError = err instanceof Error ? err : new Error(String(err));
