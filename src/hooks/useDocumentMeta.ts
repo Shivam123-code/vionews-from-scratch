@@ -52,6 +52,8 @@ export function useDocumentMeta(meta: DocumentMeta) {
   useEffect(() => {
     const { title, description, canonical, ogType = "website", ogImage = DEFAULT_IMAGE, jsonLd } = meta;
 
+    if (!canonical) return;
+
     const fullTitle = title.includes(SITE_NAME) ? title : `${title} | ${SITE_NAME}`;
 
     // Title
@@ -83,10 +85,9 @@ export function useDocumentMeta(meta: DocumentMeta) {
     }
 
     return () => {
-      // Cleanup injected JSON-LD on unmount
       document.querySelectorAll('script[data-seo="vionews"]').forEach(el => el.remove());
     };
-  }, [meta.title, meta.description, meta.canonical, meta.ogType, meta.ogImage]);
+  }, [meta.title, meta.description, meta.canonical, meta.ogType, meta.ogImage, meta.jsonLd]);
 }
 
 // Helper to build NewsArticle JSON-LD

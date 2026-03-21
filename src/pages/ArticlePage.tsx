@@ -66,10 +66,14 @@ export default function ArticlePage() {
     };
   }, [article]);
 
+  const fallbackCanonical = category && slug
+    ? `https://vionews.in/${category}/${slug}`
+    : `https://vionews.in`;
+
   useDocumentMeta(seoMeta || {
     title: "Article | VioNews",
     description: "Read the latest news on VioNews.",
-    canonical: `https://vionews.in/${category || ""}/${slug || ""}`,
+    canonical: fallbackCanonical,
   });
 
   // Fetch article from DB when accessed via direct link
