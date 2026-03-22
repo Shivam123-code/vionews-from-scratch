@@ -58,7 +58,7 @@ Separate paragraphs with double newlines. Do NOT include any headings, bullet po
 
     console.log('Generating article content with Google Gemini...');
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${GEMINI_API_KEY}`;
 
     let lastError: Error | null = null;
     for (let attempt = 1; attempt <= 3; attempt++) {
