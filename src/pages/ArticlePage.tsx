@@ -128,18 +128,21 @@ export default function ArticlePage() {
     fetchArticle();
   }, [slug, stateArticle]);
 
-  const hasRealContent = (content: string | undefined | null): boolean => {
+  const hasRealContent = (content: string | undefined | null, excerpt?: string | undefined | null): boolean => {
     if (!content) return false;
-    const placeholder = content.trim().toLowerCase();
-    return !placeholder.includes('only available in paid plan') &&
-           !placeholder.includes('available in paid plan') &&
-           placeholder.length > 50;
+    const trimmed = content.trim();
+    const placeholder = trimmed.toLowerCase();
+    if (placeholder.includes('only available in paid plan') ||
+        placeholder.includes('available in paid plan')) return false;
+    // Content must be substantially longer than excerpt to be "real"
+    if (excerpt && trimmed.length <= excerpt.trim().length + 20) return false;
+    return trimmed.length > 200;
   };
 
   useEffect(() => {
-    if (article && !hasGenerated && !hasRealContent(article.content)) {
+    if (article && !hasGenerated && !hasRealContent(article.content, article.excerpt)) {
       generateFullArticle();
-    } else if (article && hasRealContent(article.content)) {
+    } else if (article && hasRealContent(article.content, article.excerpt)) {
       setHasGenerated(true);
     }
   }, [article]);
