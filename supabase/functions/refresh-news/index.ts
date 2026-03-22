@@ -113,7 +113,7 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get('NEWSDATA_API_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
 
     if (!apiKey || !supabaseUrl || !supabaseServiceKey) {
       console.error('Missing required environment variables');
@@ -192,90 +192,67 @@ Deno.serve(async (req) => {
           let slug = cleanSlug(article.title.substring(0, 80));
           let keywords: string[] = [category];
 
-          if (lovableApiKey) {
+          if (geminiApiKey) {
             try {
+              const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
+
               // Generate article content
-              const contentRes = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+              const contentRes = await fetch(geminiUrl, {
                 method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${lovableApiKey}`,
-                  'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                  model: 'google/gemini-2.5-flash',
-                  messages: [
-                    { role: 'system', content: SYSTEM_PROMPT },
-                    { role: 'user', content: buildArticlePrompt(article.title, article.description || '', CATEGORY_DISPLAY[category] || category) }
-                  ],
-                  max_tokens: 2000,
-                  temperature: 0.75,
+                  contents: [{
+                    role: 'user',
+                    parts: [{ text: `${SYSTEM_PROMPT}\n\n${buildArticlePrompt(article.title, article.description || '', CATEGORY_DISPLAY[category] || category)}` }]
+                  }],
+                  generationConfig: { maxOutputTokens: 2000, temperature: 0.75 },
                 }),
               });
 
               if (contentRes.ok) {
                 const contentData = await contentRes.json();
-                generatedContent = contentData.choices?.[0]?.message?.content || '';
+                generatedContent = contentData.candidates?.[0]?.content?.parts?.[0]?.text || '';
               } else {
                 const errText = await contentRes.text();
-                console.warn(`AI content generation failed (${contentRes.status}):`, errText.substring(0, 100));
+                console.warn(`Gemini content generation failed (${contentRes.status}):`, errText.substring(0, 100));
               }
 
-              // Generate SEO metadata using tool calling
-              const seoRes = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+              // Generate SEO metadata
+              const seoPrompt = `${buildSeoPrompt(article.title, article.description || '', CATEGORY_DISPLAY[category] || category)}\n\nRespond ONLY with a JSON object like: {"seo_title":"...","meta_description":"...","slug":"...","keywords":["...",..."]}`;
+              const seoRes = await fetch(geminiUrl, {
                 method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${lovableApiKey}`,
-                  'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                  model: 'google/gemini-2.5-flash-lite',
-                  messages: [
-                    { role: 'system', content: 'You generate SEO metadata for news articles.' },
-                    { role: 'user', content: buildSeoPrompt(article.title, article.description || '', CATEGORY_DISPLAY[category] || category) }
-                  ],
-                  tools: [{
-                    type: 'function',
-                    function: {
-                      name: 'set_seo_metadata',
-                      description: 'Set the SEO metadata for the article',
-                      parameters: {
-                        type: 'object',
-                        properties: {
-                          seo_title: { type: 'string', description: 'SEO title, 50-60 characters' },
-                          meta_description: { type: 'string', description: 'Meta description, 150-155 characters' },
-                          slug: { type: 'string', description: 'URL slug, lowercase hyphenated' },
-                          keywords: { type: 'array', items: { type: 'string' }, description: '5-7 relevant keywords' },
-                        },
-                        required: ['seo_title', 'meta_description', 'slug', 'keywords'],
-                        additionalProperties: false,
-                      },
-                    },
+                  contents: [{
+                    role: 'user',
+                    parts: [{ text: seoPrompt }]
                   }],
-                  tool_choice: { type: 'function', function: { name: 'set_seo_metadata' } },
-                  temperature: 0.3,
+                  generationConfig: { maxOutputTokens: 500, temperature: 0.3 },
                 }),
               });
 
               if (seoRes.ok) {
                 const seoData = await seoRes.json();
-                const toolCall = seoData.choices?.[0]?.message?.tool_calls?.[0];
-                if (toolCall?.function?.arguments) {
-                  try {
-                    const seoArgs = JSON.parse(toolCall.function.arguments);
+                const seoText = seoData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                try {
+                  // Extract JSON from response (may be wrapped in markdown code block)
+                  const jsonMatch = seoText.match(/\{[\s\S]*\}/);
+                  if (jsonMatch) {
+                    const seoArgs = JSON.parse(jsonMatch[0]);
                     seoTitle = (seoArgs.seo_title || seoTitle).substring(0, 60);
                     metaDescription = (seoArgs.meta_description || metaDescription).substring(0, 155);
                     slug = cleanSlug(seoArgs.slug || slug);
                     keywords = seoArgs.keywords || keywords;
-                  } catch { /* use defaults */ }
-                }
+                  }
+                } catch { /* use defaults */ }
               } else {
-                await seoRes.text(); // consume body
+                await seoRes.text();
               }
 
               // Small delay to avoid rate limiting
-              await new Promise(r => setTimeout(r, 300));
+              await new Promise(r => setTimeout(r, 500));
             } catch (aiErr) {
-              console.warn('AI generation error:', aiErr);
+              console.warn('Gemini generation error:', aiErr);
             }
           }
 
