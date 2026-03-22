@@ -140,9 +140,9 @@ export default function ArticlePage() {
   };
 
   useEffect(() => {
-    if (article && !hasGenerated && !hasRealContent(article.content)) {
+    if (article && !hasGenerated && !hasRealContent(article.content, article.excerpt)) {
       generateFullArticle();
-    } else if (article && hasRealContent(article.content)) {
+    } else if (article && hasRealContent(article.content, article.excerpt)) {
       setHasGenerated(true);
     }
   }, [article]);
