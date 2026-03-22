@@ -194,7 +194,7 @@ Deno.serve(async (req) => {
 
           if (geminiApiKey) {
             try {
-              const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
+              const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${geminiApiKey}`;
 
               // Generate article content
               const contentRes = await fetch(geminiUrl, {
