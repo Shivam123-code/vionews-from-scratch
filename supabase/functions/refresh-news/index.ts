@@ -175,13 +175,14 @@ Deno.serve(async (req) => {
     const requestedCategory = url.searchParams.get('category');
     const categoriesToFetch = requestedCategory ? [requestedCategory] : CATEGORIES;
 
-    // Fetch recent titles from DB for deduplication
+    // Fetch recent titles and slugs from DB for deduplication
     const { data: existingArticles } = await supabase
       .from('articles')
-      .select('title')
+      .select('title, slug')
       .order('created_at', { ascending: false })
-      .limit(200);
+      .limit(500);
     const existingTitles = (existingArticles || []).map((a: any) => a.title);
+    const existingSlugs = new Set((existingArticles || []).map((a: any) => a.slug));
 
     let totalInserted = 0;
     let totalSkipped = 0;
