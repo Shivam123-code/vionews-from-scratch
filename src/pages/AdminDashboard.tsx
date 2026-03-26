@@ -124,6 +124,32 @@ export default function AdminDashboard() {
     return colors[category] || 'bg-muted';
   };
 
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked && filteredArticles) {
+      setSelectedIds(new Set(filteredArticles.map(a => a.id)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  const handleBulkDelete = () => {
+    bulkDelete.mutate(Array.from(selectedIds), {
+      onSuccess: () => {
+        setSelectedIds(new Set());
+        setShowBulkDeleteDialog(false);
+        refetch();
+      },
+    });
+  };
+
   const todayCount = articles?.filter((a) => {
     return new Date(a.created_at).toDateString() === new Date().toDateString();
   }).length || 0;
