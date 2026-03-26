@@ -185,6 +185,29 @@ export function useDeleteArticle() {
   });
 }
 
+export function useBulkDeleteArticles() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase
+        .from('articles')
+        .delete()
+        .in('id', ids);
+
+      if (error) throw error;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-articles'] });
+      queryClient.invalidateQueries({ queryKey: ['news'] });
+      toast.success(`${variables.length} articles deleted`);
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to delete articles: ${error.message}`);
+    },
+  });
+}
+
 export function useUploadImage() {
   return useMutation({
     mutationFn: async (file: File) => {
