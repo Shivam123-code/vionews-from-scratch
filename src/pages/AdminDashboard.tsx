@@ -303,6 +303,12 @@ export default function AdminDashboard() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10">
+                    <Checkbox
+                      checked={filteredArticles?.length ? selectedIds.size === filteredArticles.length : false}
+                      onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                    />
+                  </TableHead>
                   <TableHead className="w-[35%]">Title</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Status</TableHead>
