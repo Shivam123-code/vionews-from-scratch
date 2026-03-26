@@ -42,7 +42,9 @@ const generateSlug = (title: string): string => {
   return title
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '') + '-' + Date.now();
+    .replace(/(^-|-$)/g, '')
+    .substring(0, 80)
+    .replace(/-$/, '');
 };
 
 const generateId = (): string => {
