@@ -91,7 +91,7 @@ function titlesSimilar(title1: string, title2: string): boolean {
   return similarity > 0.6;
 }
 
-// Clean slug: lowercase, hyphenated, no trailing numbers/special chars
+// Clean slug: lowercase, hyphenated, NO numbers/IDs/timestamps anywhere
 function cleanSlug(raw: string): string {
   let slug = raw
     .toLowerCase()
@@ -99,9 +99,43 @@ function cleanSlug(raw: string): string {
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '');
-  // Remove trailing numbers
-  slug = slug.replace(/-?\d+$/, '').replace(/-$/, '');
+  // Strip all trailing number segments (IDs, timestamps, etc.)
+  slug = slug.replace(/(-\d+)+$/, '').replace(/-$/, '');
+  // Also strip any long number sequences anywhere in the slug (timestamps/IDs)
+  slug = slug.replace(/-?\d{6,}-?/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
   return slug || 'article';
+}
+
+// Word suffixes for deduplication instead of numbers
+const SLUG_SUFFIXES = ['latest', 'update', 'report', 'recap', 'details', 'analysis', 'insight', 'brief', 'roundup', 'overview'];
+
+// Make slug unique by appending word suffixes, not numbers
+function makeUniqueSlug(baseSlug: string, existingSlugs: Set<string>): string {
+  if (!existingSlugs.has(baseSlug)) return baseSlug;
+  for (const suffix of SLUG_SUFFIXES) {
+    const candidate = `${baseSlug}-${suffix}`;
+    if (!existingSlugs.has(candidate)) return candidate;
+  }
+  // Last resort: use a short random word-like string
+  const fallback = `${baseSlug}-${Date.now().toString(36).slice(-4)}`;
+  return fallback;
+}
+
+// Hyper-local keywords to filter out
+const LOCAL_NEWS_KEYWORDS = [
+  'city council', 'local council', 'parish', 'borough', 'ward',
+  'municipal', 'county budget', 'road repairs', 'bin collection',
+  'planning permission', 'town hall', 'zoning board', 'pothole',
+  'local election', 'school board meeting',
+];
+
+function isHyperLocalNews(title: string, description: string): boolean {
+  const text = `${title} ${description}`.toLowerCase();
+  return LOCAL_NEWS_KEYWORDS.some(kw => text.includes(kw));
+}
+
+function wordCount(text: string): number {
+  return text.trim().split(/\s+/).filter(w => w.length > 0).length;
 }
 
 Deno.serve(async (req) => {
