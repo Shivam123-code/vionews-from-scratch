@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useAdminArticles, useDeleteArticle } from '@/hooks/useArticles';
+import { useAdminArticles, useDeleteArticle, useBulkDeleteArticles } from '@/hooks/useArticles';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
@@ -31,11 +32,14 @@ export default function AdminDashboard() {
   const { user, isAdmin, adminChecked, isLoading, signOut } = useAuth();
   const { data: articles, isLoading: articlesLoading, refetch } = useAdminArticles();
   const deleteArticle = useDeleteArticle();
+  const bulkDelete = useBulkDeleteArticles();
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [isFetching, setIsFetching] = useState(false);
   const [autoPublish, setAutoPublish] = useState(true);
   const [autoPublishLoading, setAutoPublishLoading] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
   const { toast } = useToast();
 
   // Load auto_publish setting
@@ -118,6 +122,32 @@ export default function AdminDashboard() {
       Technology: 'bg-news-tech', Politics: 'bg-news-politics', Sports: 'bg-news-sports',
     };
     return colors[category] || 'bg-muted';
+  };
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked && filteredArticles) {
+      setSelectedIds(new Set(filteredArticles.map(a => a.id)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  const handleBulkDelete = () => {
+    bulkDelete.mutate(Array.from(selectedIds), {
+      onSuccess: () => {
+        setSelectedIds(new Set());
+        setShowBulkDeleteDialog(false);
+        refetch();
+      },
+    });
   };
 
   const todayCount = articles?.filter((a) => {
@@ -229,6 +259,35 @@ export default function AdminDashboard() {
               ))}
             </SelectContent>
           </Select>
+          {selectedIds.size > 0 && (
+            <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="gap-2">
+                  <Trash2 className="h-4 w-4" />
+                  Delete Selected ({selectedIds.size})
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete {selectedIds.size} Articles</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete {selectedIds.size} selected articles? This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleBulkDelete}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    disabled={bulkDelete.isPending}
+                  >
+                    {bulkDelete.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                    Delete All
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
           <Button asChild>
             <Link to="/admin/articles/new"><Plus className="h-4 w-4 mr-2" />Add Article</Link>
           </Button>
@@ -244,6 +303,12 @@ export default function AdminDashboard() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10">
+                    <Checkbox
+                      checked={filteredArticles?.length ? selectedIds.size === filteredArticles.length : false}
+                      onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                    />
+                  </TableHead>
                   <TableHead className="w-[35%]">Title</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Status</TableHead>
@@ -255,13 +320,19 @@ export default function AdminDashboard() {
               <TableBody>
                 {filteredArticles?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       No articles found
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredArticles?.map((article) => (
-                    <TableRow key={article.id}>
+                    <TableRow key={article.id} className={selectedIds.has(article.id) ? 'bg-muted/50' : ''}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedIds.has(article.id)}
+                          onCheckedChange={() => handleToggleSelect(article.id)}
+                        />
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           {article.image_url && (

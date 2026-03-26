@@ -42,7 +42,9 @@ const generateSlug = (title: string): string => {
   return title
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '') + '-' + Date.now();
+    .replace(/(^-|-$)/g, '')
+    .substring(0, 80)
+    .replace(/-$/, '');
 };
 
 const generateId = (): string => {
@@ -179,6 +181,29 @@ export function useDeleteArticle() {
     },
     onError: (error: Error) => {
       toast.error(`Failed to delete article: ${error.message}`);
+    },
+  });
+}
+
+export function useBulkDeleteArticles() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase
+        .from('articles')
+        .delete()
+        .in('id', ids);
+
+      if (error) throw error;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-articles'] });
+      queryClient.invalidateQueries({ queryKey: ['news'] });
+      toast.success(`${variables.length} articles deleted`);
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to delete articles: ${error.message}`);
     },
   });
 }
