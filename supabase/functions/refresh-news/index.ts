@@ -210,6 +210,13 @@ Deno.serve(async (req) => {
         for (const article of data.results) {
           if (!article.title || !article.description) continue;
 
+          // FILTER: Block hyper-local news
+          if (isHyperLocalNews(article.title, article.description || '')) {
+            console.log(`Skipped hyper-local: ${article.title.substring(0, 50)}`);
+            totalSkipped++;
+            continue;
+          }
+
           // Deduplication: check title similarity
           const isDuplicate = existingTitles.some(existing => titlesSimilar(existing, article.title));
           if (isDuplicate) {
@@ -252,6 +259,13 @@ Deno.serve(async (req) => {
                 console.warn(`Gemini content generation failed (${contentRes.status}):`, errText.substring(0, 100));
               }
 
+              // FILTER: Skip if AI-generated content is too short (under 300 words)
+              if (generatedContent && wordCount(generatedContent) < 300) {
+                console.log(`Skipped low-quality (${wordCount(generatedContent)} words): ${article.title.substring(0, 50)}`);
+                totalSkipped++;
+                continue;
+              }
+
               // Generate SEO metadata
               const seoPrompt = `${buildSeoPrompt(article.title, article.description || '', CATEGORY_DISPLAY[category] || category)}\n\nRespond ONLY with a JSON object like: {"seo_title":"...","meta_description":"...","slug":"...","keywords":["...",..."]}`;
               const seoRes = await fetch(geminiUrl, {
@@ -270,7 +284,6 @@ Deno.serve(async (req) => {
                 const seoData = await seoRes.json();
                 const seoText = seoData.candidates?.[0]?.content?.parts?.[0]?.text || '';
                 try {
-                  // Extract JSON from response (may be wrapped in markdown code block)
                   const jsonMatch = seoText.match(/\{[\s\S]*\}/);
                   if (jsonMatch) {
                     const seoArgs = JSON.parse(jsonMatch[0]);
@@ -291,13 +304,25 @@ Deno.serve(async (req) => {
             }
           }
 
+          // FILTER: Final content quality check — minimum 350 words
+          const finalContent = generatedContent || article.description || '';
+          if (wordCount(finalContent) < 350) {
+            console.log(`Skipped final quality check (${wordCount(finalContent)} words): ${article.title.substring(0, 50)}`);
+            totalSkipped++;
+            continue;
+          }
+
+          // Make slug unique using word suffixes, not numbers
+          slug = makeUniqueSlug(slug, existingSlugs);
+          existingSlugs.add(slug);
+
           // Build article record
           const articleRecord = {
             id: article.article_id,
             slug: slug,
             title: article.title,
             excerpt: (article.description || '').substring(0, 300),
-            content: generatedContent || article.description || '',
+            content: finalContent,
             category: CATEGORY_DISPLAY[category] || category,
             category_slug: category,
             published_at: article.pubDate ? new Date(article.pubDate).toISOString() : new Date().toISOString(),
@@ -306,7 +331,7 @@ Deno.serve(async (req) => {
             image_url: article.image_url || 'https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800&h=600&fit=crop',
             source_name: article.source_name,
             source_url: article.link,
-            source_reference: article.title, // Store only original headline
+            source_reference: article.title,
             seo_title: seoTitle,
             meta_description: metaDescription,
             is_published: autoPublish,
