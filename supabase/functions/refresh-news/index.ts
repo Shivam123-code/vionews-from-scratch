@@ -26,7 +26,6 @@ interface NewsDataResponse {
   nextPage?: string;
 }
 
-// Only these 5 categories
 const CATEGORIES = ['world', 'business', 'technology', 'politics', 'sports'];
 
 const CATEGORY_DISPLAY: Record<string, string> = {
@@ -37,7 +36,8 @@ const CATEGORY_DISPLAY: Record<string, string> = {
   sports: 'Sports',
 };
 
-// AI prompt for generating original article content + SEO fields
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+
 const SYSTEM_PROMPT = `You are a senior news journalist at VioNews, a professional digital news platform for US readers. You write original, factual, engaging news articles.
 
 STRICT RULES:
@@ -80,7 +80,6 @@ Requirements:
 - keywords: Array of exactly 5-7 relevant keywords/phrases for this article`;
 }
 
-// Check title similarity using simple word overlap
 function titlesSimilar(title1: string, title2: string): boolean {
   const normalize = (t: string) => t.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 3);
   const words1 = normalize(title1);
@@ -91,7 +90,6 @@ function titlesSimilar(title1: string, title2: string): boolean {
   return similarity > 0.6;
 }
 
-// Clean slug: lowercase, hyphenated, NO numbers/IDs/timestamps anywhere
 function cleanSlug(raw: string): string {
   let slug = raw
     .toLowerCase()
@@ -99,29 +97,23 @@ function cleanSlug(raw: string): string {
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '');
-  // Strip all trailing number segments (IDs, timestamps, etc.)
   slug = slug.replace(/(-\d+)+$/, '').replace(/-$/, '');
-  // Also strip any long number sequences anywhere in the slug (timestamps/IDs)
   slug = slug.replace(/-?\d{6,}-?/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
   return slug || 'article';
 }
 
-// Word suffixes for deduplication instead of numbers
 const SLUG_SUFFIXES = ['latest', 'update', 'report', 'recap', 'details', 'analysis', 'insight', 'brief', 'roundup', 'overview'];
 
-// Make slug unique by appending word suffixes, not numbers
 function makeUniqueSlug(baseSlug: string, existingSlugs: Set<string>): string {
   if (!existingSlugs.has(baseSlug)) return baseSlug;
   for (const suffix of SLUG_SUFFIXES) {
     const candidate = `${baseSlug}-${suffix}`;
     if (!existingSlugs.has(candidate)) return candidate;
   }
-  // Last resort: use a short random word-like string
   const fallback = `${baseSlug}-${Date.now().toString(36).slice(-4)}`;
   return fallback;
 }
 
-// Hyper-local keywords to filter out
 const LOCAL_NEWS_KEYWORDS = [
   'city council', 'local council', 'parish', 'borough', 'ward',
   'municipal', 'county budget', 'road repairs', 'bin collection',
@@ -138,6 +130,30 @@ function wordCount(text: string): number {
   return text.trim().split(/\s+/).filter(w => w.length > 0).length;
 }
 
+async function callOpenRouter(apiKey: string, messages: { role: string; content: string }[], maxTokens: number, temperature: number): Promise<string> {
+  const response = await fetch(OPENROUTER_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'google/gemini-2.5-flash',
+      messages,
+      max_tokens: maxTokens,
+      temperature,
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`OpenRouter API error (${response.status}): ${errText.substring(0, 100)}`);
+  }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || '';
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -147,7 +163,7 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get('NEWSDATA_API_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+    const openrouterApiKey = Deno.env.get('OPENROUTER_API_KEY');
 
     if (!apiKey || !supabaseUrl || !supabaseServiceKey) {
       console.error('Missing required environment variables');
@@ -159,7 +175,6 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Check auto_publish setting
     let autoPublish = true;
     const { data: settingRow } = await supabase
       .from('settings')
@@ -170,12 +185,10 @@ Deno.serve(async (req) => {
       autoPublish = settingRow.value === 'true';
     }
 
-    // Get optional category from request
     const url = new URL(req.url);
     const requestedCategory = url.searchParams.get('category');
     const categoriesToFetch = requestedCategory ? [requestedCategory] : CATEGORIES;
 
-    // Fetch recent titles and slugs from DB for deduplication
     const { data: existingArticles } = await supabase
       .from('articles')
       .select('title, slug')
@@ -210,56 +223,40 @@ Deno.serve(async (req) => {
         for (const article of data.results) {
           if (!article.title || !article.description) continue;
 
-          // FILTER: Block hyper-local news
           if (isHyperLocalNews(article.title, article.description || '')) {
             console.log(`Skipped hyper-local: ${article.title.substring(0, 50)}`);
             totalSkipped++;
             continue;
           }
 
-          // Deduplication: check title similarity
           const isDuplicate = existingTitles.some(existing => titlesSimilar(existing, article.title));
           if (isDuplicate) {
             totalSkipped++;
             continue;
           }
 
-          // Add to existing titles to prevent duplicates within this batch
           existingTitles.push(article.title);
 
-          // Generate AI content + SEO fields
           let generatedContent = '';
           let seoTitle = article.title.substring(0, 60);
           let metaDescription = (article.description || '').substring(0, 155);
           let slug = cleanSlug(article.title.substring(0, 80));
           let keywords: string[] = [category];
 
-          if (geminiApiKey) {
+          if (openrouterApiKey) {
             try {
-              const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${geminiApiKey}`;
-
               // Generate article content
-              const contentRes = await fetch(geminiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  contents: [{
-                    role: 'user',
-                    parts: [{ text: `${SYSTEM_PROMPT}\n\n${buildArticlePrompt(article.title, article.description || '', CATEGORY_DISPLAY[category] || category)}` }]
-                  }],
-                  generationConfig: { maxOutputTokens: 2000, temperature: 0.75 },
-                }),
-              });
+              generatedContent = await callOpenRouter(
+                openrouterApiKey,
+                [
+                  { role: 'system', content: SYSTEM_PROMPT },
+                  { role: 'user', content: buildArticlePrompt(article.title, article.description || '', CATEGORY_DISPLAY[category] || category) },
+                ],
+                2000,
+                0.75
+              );
 
-              if (contentRes.ok) {
-                const contentData = await contentRes.json();
-                generatedContent = contentData.candidates?.[0]?.content?.parts?.[0]?.text || '';
-              } else {
-                const errText = await contentRes.text();
-                console.warn(`Gemini content generation failed (${contentRes.status}):`, errText.substring(0, 100));
-              }
-
-              // FILTER: Skip if AI-generated content is too short (under 300 words)
+              // Skip if AI-generated content is too short (under 300 words)
               if (generatedContent && wordCount(generatedContent) < 300) {
                 console.log(`Skipped low-quality (${wordCount(generatedContent)} words): ${article.title.substring(0, 50)}`);
                 totalSkipped++;
@@ -268,43 +265,32 @@ Deno.serve(async (req) => {
 
               // Generate SEO metadata
               const seoPrompt = `${buildSeoPrompt(article.title, article.description || '', CATEGORY_DISPLAY[category] || category)}\n\nRespond ONLY with a JSON object like: {"seo_title":"...","meta_description":"...","slug":"...","keywords":["...",..."]}`;
-              const seoRes = await fetch(geminiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  contents: [{
-                    role: 'user',
-                    parts: [{ text: seoPrompt }]
-                  }],
-                  generationConfig: { maxOutputTokens: 500, temperature: 0.3 },
-                }),
-              });
+              const seoText = await callOpenRouter(
+                openrouterApiKey,
+                [{ role: 'user', content: seoPrompt }],
+                500,
+                0.3
+              );
 
-              if (seoRes.ok) {
-                const seoData = await seoRes.json();
-                const seoText = seoData.candidates?.[0]?.content?.parts?.[0]?.text || '';
-                try {
-                  const jsonMatch = seoText.match(/\{[\s\S]*\}/);
-                  if (jsonMatch) {
-                    const seoArgs = JSON.parse(jsonMatch[0]);
-                    seoTitle = (seoArgs.seo_title || seoTitle).substring(0, 60);
-                    metaDescription = (seoArgs.meta_description || metaDescription).substring(0, 155);
-                    slug = cleanSlug(seoArgs.slug || slug);
-                    keywords = seoArgs.keywords || keywords;
-                  }
-                } catch { /* use defaults */ }
-              } else {
-                await seoRes.text();
-              }
+              try {
+                const jsonMatch = seoText.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                  const seoArgs = JSON.parse(jsonMatch[0]);
+                  seoTitle = (seoArgs.seo_title || seoTitle).substring(0, 60);
+                  metaDescription = (seoArgs.meta_description || metaDescription).substring(0, 155);
+                  slug = cleanSlug(seoArgs.slug || slug);
+                  keywords = seoArgs.keywords || keywords;
+                }
+              } catch { /* use defaults */ }
 
               // Small delay to avoid rate limiting
               await new Promise(r => setTimeout(r, 500));
             } catch (aiErr) {
-              console.warn('Gemini generation error:', aiErr);
+              console.warn('OpenRouter generation error:', aiErr);
             }
           }
 
-          // FILTER: Final content quality check — minimum 350 words
+          // Final content quality check — minimum 350 words
           const finalContent = generatedContent || article.description || '';
           if (wordCount(finalContent) < 350) {
             console.log(`Skipped final quality check (${wordCount(finalContent)} words): ${article.title.substring(0, 50)}`);
@@ -312,11 +298,9 @@ Deno.serve(async (req) => {
             continue;
           }
 
-          // Make slug unique using word suffixes, not numbers
           slug = makeUniqueSlug(slug, existingSlugs);
           existingSlugs.add(slug);
 
-          // Build article record
           const articleRecord = {
             id: article.article_id,
             slug: slug,
@@ -353,7 +337,6 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Delay between categories
         await new Promise(r => setTimeout(r, 500));
       } catch (catError) {
         console.error(`Error processing ${category}:`, catError);
@@ -361,7 +344,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Clean up old articles (older than 7 days)
     const { error: cleanupError } = await supabase.rpc('cleanup_old_articles');
     if (cleanupError) {
       console.error('Cleanup error:', cleanupError);

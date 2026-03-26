@@ -18,6 +18,8 @@ STRICT RULES:
 - Write in third person. Do not address the reader directly.
 - Do not fabricate specific quotes, statistics, or facts not implied by the source.`;
 
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -33,9 +35,9 @@ serve(async (req) => {
       );
     }
 
-    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
-    if (!GEMINI_API_KEY) {
-      console.error('GEMINI_API_KEY not configured');
+    const OPENROUTER_API_KEY = Deno.env.get('OPENROUTER_API_KEY');
+    if (!OPENROUTER_API_KEY) {
+      console.error('OPENROUTER_API_KEY not configured');
       return new Response(
         JSON.stringify({ success: false, error: 'AI service not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -56,36 +58,34 @@ Paragraph 4: Expert outlook — what analysts or officials expect to happen next
 
 Separate paragraphs with double newlines. Do NOT include any headings, bullet points, or markdown formatting. Just plain text paragraphs.`;
 
-    console.log('Generating article content with Google Gemini...');
-
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${GEMINI_API_KEY}`;
+    console.log('Generating article content with OpenRouter...');
 
     let lastError: Error | null = null;
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
-        const response = await fetch(geminiUrl, {
+        const response = await fetch(OPENROUTER_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          },
           body: JSON.stringify({
-            contents: [
-              {
-                role: 'user',
-                parts: [{ text: `${SYSTEM_PROMPT}\n\n${userPrompt}` }]
-              }
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              { role: 'system', content: SYSTEM_PROMPT },
+              { role: 'user', content: userPrompt },
             ],
-            generationConfig: {
-              maxOutputTokens: 2000,
-              temperature: 0.75,
-            },
+            max_tokens: 2000,
+            temperature: 0.75,
           }),
         });
 
         if (response.ok) {
           const data = await response.json();
-          const generatedContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          const generatedContent = data.choices?.[0]?.message?.content;
 
           if (generatedContent) {
-            console.log('Article generated successfully via Gemini');
+            console.log('Article generated successfully via OpenRouter');
             return new Response(
               JSON.stringify({ success: true, content: generatedContent }),
               { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -114,8 +114,8 @@ Separate paragraphs with double newlines. Do NOT include any headings, bullet po
         }
 
         const errorText = await response.text();
-        console.error('Gemini API error:', response.status, errorText.substring(0, 200));
-        lastError = new Error(`Gemini API returned ${response.status}`);
+        console.error('OpenRouter API error:', response.status, errorText.substring(0, 200));
+        lastError = new Error(`OpenRouter API returned ${response.status}`);
       } catch (err) {
         console.error(`Attempt ${attempt} error:`, err);
         lastError = err instanceof Error ? err : new Error(String(err));
