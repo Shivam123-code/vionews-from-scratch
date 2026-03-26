@@ -320,13 +320,19 @@ export default function AdminDashboard() {
               <TableBody>
                 {filteredArticles?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       No articles found
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredArticles?.map((article) => (
-                    <TableRow key={article.id}>
+                    <TableRow key={article.id} className={selectedIds.has(article.id) ? 'bg-muted/50' : ''}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedIds.has(article.id)}
+                          onCheckedChange={() => handleToggleSelect(article.id)}
+                        />
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           {article.image_url && (
