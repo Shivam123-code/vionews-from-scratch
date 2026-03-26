@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useAdminArticles, useDeleteArticle } from '@/hooks/useArticles';
+import { useAdminArticles, useDeleteArticle, useBulkDeleteArticles } from '@/hooks/useArticles';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
@@ -31,11 +32,14 @@ export default function AdminDashboard() {
   const { user, isAdmin, adminChecked, isLoading, signOut } = useAuth();
   const { data: articles, isLoading: articlesLoading, refetch } = useAdminArticles();
   const deleteArticle = useDeleteArticle();
+  const bulkDelete = useBulkDeleteArticles();
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [isFetching, setIsFetching] = useState(false);
   const [autoPublish, setAutoPublish] = useState(true);
   const [autoPublishLoading, setAutoPublishLoading] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
   const { toast } = useToast();
 
   // Load auto_publish setting
