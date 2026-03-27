@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
       for (const a of (articles || [])) {
         const articleUrl = `${SITE_URL}/${a.category_slug}/${a.slug}`;
         const pubDate = a.published_at ? new Date(a.published_at).toISOString() : new Date().toISOString();
-        const title = escapeXml(a.seo_title || a.title);
+        const title = escapeXml((a.seo_title || a.title).trim());
         const keywords = (a.keywords || []).join(', ');
 
         xml += `  <url>\n`;

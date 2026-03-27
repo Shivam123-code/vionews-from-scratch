@@ -115,10 +115,20 @@ function makeUniqueSlug(baseSlug: string, existingSlugs: Set<string>): string {
 }
 
 const LOCAL_NEWS_KEYWORDS = [
+  // Generic local/municipal
   'city council', 'local council', 'parish', 'borough', 'ward',
   'municipal', 'county budget', 'road repairs', 'bin collection',
   'planning permission', 'town hall', 'zoning board', 'pothole',
   'local election', 'school board meeting',
+  // Indian politics/legal
+  'tehsildar', 'ex-tehsildar', 'dalal', 'jaishankar', 'bjp', 'aap',
+  'congress party', 'modi', 'rupee', 'crore', 'lakh',
+  'hc suspends', 'high court india', 'all-party meeting india',
+  // Nigerian/African local politics
+  'apc', 'tinubu', 'north-west nigeria', 'kaduna',
+  'nigerian politics', 'uba sani',
+  // Local court/legal cases
+  'bribery case', 'sentence suspended', 'ex-councillor', 'magistrate court',
 ];
 
 function isHyperLocalNews(title: string, description: string): boolean {
@@ -205,7 +215,7 @@ Deno.serve(async (req) => {
       try {
         console.log(`Fetching ${category} news...`);
 
-        const apiUrl = `https://newsdata.io/api/1/latest?apikey=${apiKey}&language=en&category=${category}`;
+        const apiUrl = `https://newsdata.io/api/1/latest?apikey=${apiKey}&language=en&country=us,gb,au,ca&category=${category}`;
         const response = await fetch(apiUrl);
         const data: NewsDataResponse = await response.json();
 
