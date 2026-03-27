@@ -286,7 +286,7 @@ Deno.serve(async (req) => {
                 const jsonMatch = seoText.match(/\{[\s\S]*\}/);
                 if (jsonMatch) {
                   const seoArgs = JSON.parse(jsonMatch[0]);
-                  seoTitle = (seoArgs.seo_title || seoTitle).substring(0, 60);
+                  seoTitle = seoArgs.seo_title || seoTitle;
                   metaDescription = (seoArgs.meta_description || metaDescription).substring(0, 155);
                   slug = cleanSlug(seoArgs.slug || slug);
                   keywords = seoArgs.keywords || keywords;
