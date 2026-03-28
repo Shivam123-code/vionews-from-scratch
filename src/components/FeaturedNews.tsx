@@ -74,14 +74,14 @@ export function FeaturedNews() {
   if (isLoading) {
     return (
       <section>
-        <div className="grid lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1 order-2 lg:order-1 space-y-4">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          <div className="md:col-span-1 lg:col-span-1 order-2 md:order-1 lg:order-1 space-y-3 md:space-y-4">
             {[...Array(5)].map((_, i) => (
               <SideStorySkeleton key={i} />
             ))}
           </div>
-          <div className="lg:col-span-2 order-1 lg:order-2">
-            <Skeleton className="aspect-[16/10] lg:aspect-auto lg:h-full min-h-[400px] rounded-lg" />
+          <div className="md:col-span-1 lg:col-span-2 order-1 md:order-2 lg:order-2">
+            <Skeleton className="aspect-[16/10] lg:aspect-auto lg:h-full min-h-[250px] md:min-h-[300px] lg:min-h-[400px] rounded-lg" />
           </div>
         </div>
       </section>
@@ -103,21 +103,21 @@ export function FeaturedNews() {
 
   return (
     <section>
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {/* Side stories */}
-        <div className="lg:col-span-1 order-2 lg:order-1 space-y-4">
+        <div className="md:col-span-1 lg:col-span-1 order-2 md:order-1 lg:order-1 space-y-3 md:space-y-4">
           {sideNews.map((news) => (
             <SideStoryCard key={news.id} article={news} />
           ))}
         </div>
 
         {/* Main featured story */}
-        <div className="lg:col-span-2 order-1 lg:order-2">
+        <div className="md:col-span-1 lg:col-span-2 order-1 md:order-2 lg:order-2">
           <Link
             to={`/${mainArticle.categorySlug}/${mainArticle.slug}`}
             className="news-card group cursor-pointer block h-full"
           >
-            <div className="relative aspect-[16/10] lg:aspect-auto lg:h-full min-h-[400px] overflow-hidden rounded-lg">
+            <div className="relative aspect-[16/10] lg:aspect-auto lg:h-full min-h-[250px] md:min-h-[300px] lg:min-h-[400px] overflow-hidden rounded-lg">
               <img
                 src={mainArticle.image || featuredImg}
                 alt={mainArticle.title}
@@ -127,11 +127,11 @@ export function FeaturedNews() {
                 }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+              <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6 text-white">
                 <span className="news-category-badge bg-primary text-primary-foreground mb-3">
                   {mainArticle.category}
                 </span>
-                <h1 className="news-headline text-2xl md:text-3xl lg:text-4xl mb-3">
+                <h1 className="news-headline text-xl sm:text-2xl md:text-3xl lg:text-4xl mb-2 md:mb-3">
                   {mainArticle.title}
                 </h1>
                 <p className="text-white/80 text-sm md:text-base line-clamp-2 mb-4">

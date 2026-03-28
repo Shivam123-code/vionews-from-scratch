@@ -21,8 +21,8 @@ const Index = () => {
       <BreakingNews />
 
       {/* Main content with sidebar */}
-      <div className="container py-8">
-        <div className="grid lg:grid-cols-4 gap-8">
+      <div className="container py-4 md:py-8">
+        <div className="grid lg:grid-cols-4 gap-6 lg:gap-8">
           <div className="lg:col-span-3">
             <FeaturedNews />
           </div>
