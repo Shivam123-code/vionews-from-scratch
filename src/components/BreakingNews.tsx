@@ -11,10 +11,10 @@ export function BreakingNews() {
 
   return (
     <div className="breaking-news-bar">
-      <div className="container flex items-center gap-4">
-        <div className="flex items-center gap-2 shrink-0">
-          <AlertCircle className="h-4 w-4" />
-          <span className="font-bold text-sm uppercase tracking-wider">Breaking</span>
+      <div className="container flex items-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          <span className="font-bold text-xs sm:text-sm uppercase tracking-wider">Breaking</span>
         </div>
         <div className="overflow-hidden relative flex-1">
           <div className="flex animate-marquee whitespace-nowrap">

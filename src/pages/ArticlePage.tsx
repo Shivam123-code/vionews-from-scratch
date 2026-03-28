@@ -215,27 +215,27 @@ export default function ArticlePage() {
 
       <main className="container py-8">
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 mb-6 text-sm" aria-label="Breadcrumb">
-          <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">Home</Link>
-          <span className="text-muted-foreground">/</span>
-          <Link to={`/${article.categorySlug}`} className="text-muted-foreground hover:text-foreground transition-colors">
+        <nav className="flex items-center gap-2 mb-4 md:mb-6 text-xs sm:text-sm overflow-x-auto" aria-label="Breadcrumb">
+          <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors shrink-0">Home</Link>
+          <span className="text-muted-foreground shrink-0">/</span>
+          <Link to={`/${article.categorySlug}`} className="text-muted-foreground hover:text-foreground transition-colors shrink-0">
             {categoryDisplayName[article.categorySlug] || article.category}
           </Link>
-          <span className="text-muted-foreground">/</span>
-          <span className="text-foreground line-clamp-1">{article.title}</span>
+          <span className="text-muted-foreground shrink-0">/</span>
+          <span className="text-foreground line-clamp-1 min-w-0">{article.title}</span>
         </nav>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          <article className="lg:col-span-2">
+        <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
+          <article className="lg:col-span-2 min-w-0">
             <Link to={`/${article.categorySlug}`} className={`news-category-badge ${categoryColor} text-white mb-4 inline-block`}>
               {article.category}
             </Link>
 
-            <h1 className="news-headline text-3xl md:text-4xl lg:text-5xl mb-6">{article.title}</h1>
+            <h1 className="news-headline text-2xl sm:text-3xl md:text-4xl lg:text-5xl mb-4 md:mb-6">{article.title}</h1>
 
-            <div className="flex items-center justify-between flex-wrap gap-4 pb-6 mb-6 border-b border-border">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+            <div className="flex items-center justify-between flex-wrap gap-3 md:gap-4 pb-4 md:pb-6 mb-4 md:mb-6 border-b border-border">
+              <div className="flex items-center gap-3 md:gap-4">
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-primary/10 rounded-full flex items-center justify-center">
                   <span className="font-bold text-primary">V</span>
                 </div>
                 <div>
@@ -251,7 +251,7 @@ export default function ArticlePage() {
               </div>
             </div>
 
-            <div className="aspect-video rounded-lg overflow-hidden mb-8">
+            <div className="aspect-video rounded-lg overflow-hidden mb-6 md:mb-8">
               <img
                 src={article.image}
                 loading="lazy"
@@ -263,7 +263,7 @@ export default function ArticlePage() {
             </div>
 
             {/* Share buttons */}
-            <div className="flex items-center gap-3 mb-8">
+            <div className="flex items-center gap-2 sm:gap-3 mb-6 md:mb-8 flex-wrap">
               <span className="text-sm font-medium">Share:</span>
               <button onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(articleUrl)}`, "_blank")} className="p-2 bg-secondary hover:bg-primary hover:text-primary-foreground rounded-full transition-colors" aria-label="Share on Facebook">
                 <Facebook className="h-4 w-4" />
@@ -288,14 +288,14 @@ export default function ArticlePage() {
 
             <div className="prose prose-lg max-w-none">
               {paragraphs.map((paragraph, index) => (
-                <p key={index} className="mb-6 text-foreground/90 leading-relaxed text-lg">{paragraph}</p>
+                <p key={index} className="mb-4 md:mb-6 text-foreground/90 leading-relaxed text-base md:text-lg">{paragraph}</p>
               ))}
             </div>
 
             {related.length > 0 && (
               <div className="mt-12 pt-8 border-t border-border">
                 <h2 className="text-xl font-bold mb-6">Related Articles</h2>
-                <div className="grid md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   {related.map((rel) => (
                     <Link key={rel.id} to={`/${rel.categorySlug}/${rel.slug}`} className="news-card group block">
                       <div className="aspect-[4/3] overflow-hidden">

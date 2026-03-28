@@ -30,10 +30,10 @@ const socialLinks = [
 export function Footer() {
   return (
     <footer style={{ backgroundColor: 'hsl(var(--header-bg))', color: 'hsl(var(--header-fg))' }} className="mt-12">
-      <div className="container py-12">
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div className="container py-8 md:py-12">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
           {/* Brand */}
-          <div className="lg:col-span-1">
+          <div className="col-span-2 lg:col-span-1">
             <Link to="/" className="flex items-center gap-1.5 mb-4">
               <Zap className="h-7 w-7 text-logo fill-logo" />
               <span className="text-2xl font-black tracking-tight">
@@ -98,7 +98,7 @@ export function Footer() {
           </div>
 
           {/* Newsletter */}
-          <div>
+          <div className="col-span-2 lg:col-span-1">
             <h3 className="font-bold text-lg mb-4">Newsletter</h3>
             <p className="text-sm mb-4" style={{ color: 'hsl(var(--header-fg) / 0.6)' }}>
               Get the latest news delivered to your inbox daily.
@@ -125,7 +125,7 @@ export function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="mt-12 pt-8 flex flex-col md:flex-row items-center justify-between gap-4" style={{ borderTopColor: 'hsl(var(--header-fg) / 0.1)', borderTopWidth: '1px' }}>
+        <div className="mt-8 md:mt-12 pt-6 md:pt-8 flex flex-col md:flex-row items-center justify-between gap-4" style={{ borderTopColor: 'hsl(var(--header-fg) / 0.1)', borderTopWidth: '1px' }}>
           <p className="text-sm" style={{ color: 'hsl(var(--header-fg) / 0.4)' }}>
             © {new Date().getFullYear()} VioNews. All rights reserved.
           </p>
