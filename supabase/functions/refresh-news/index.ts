@@ -124,11 +124,22 @@ const LOCAL_NEWS_KEYWORDS = [
   'tehsildar', 'ex-tehsildar', 'dalal', 'jaishankar', 'bjp', 'aap',
   'congress party', 'modi', 'rupee', 'crore', 'lakh',
   'hc suspends', 'high court india', 'all-party meeting india',
+  // Indian state politics
+  'dmk', 'aiadmk', 'palaniswami', 'tamil nadu politics',
+  'odisha', 'bandh', 'malkangiri', 'ashok leyland',
+  'excise duty india', 'tamil nadu cm',
   // Nigerian/African local politics
   'apc', 'tinubu', 'north-west nigeria', 'kaduna',
   'nigerian politics', 'uba sani',
   // Local court/legal cases
   'bribery case', 'sentence suspended', 'ex-councillor', 'magistrate court',
+  // Hyper-local US crime
+  'cold case', 'sentencing delayed', 'local murder',
+  'county court', 'district court ruling',
+  // Product advertisements/sales
+  '% off', 'spring sale', 'amazon sale', 'deal alert',
+  'discount', 'price drop', 'buy now', 'limited time',
+  'on sale', 'coupon',
 ];
 
 function isHyperLocalNews(title: string, description: string): boolean {
@@ -215,7 +226,7 @@ Deno.serve(async (req) => {
       try {
         console.log(`Fetching ${category} news...`);
 
-        const apiUrl = `https://newsdata.io/api/1/latest?apikey=${apiKey}&language=en&country=us,gb,au,ca&category=${category}`;
+        const apiUrl = `https://newsdata.io/api/1/latest?apikey=${apiKey}&language=en&country=us,gb,au,ca,nz&category=${category}`;
         const response = await fetch(apiUrl);
         const data: NewsDataResponse = await response.json();
 
