@@ -1,5 +1,6 @@
 import { AlertCircle } from "lucide-react";
 import { useNews } from "@/hooks/useNews";
+import { BreakingNewsAd } from "@/components/ads/BreakingNewsAd";
 
 export function BreakingNews() {
   const { data: articles } = useNews();
