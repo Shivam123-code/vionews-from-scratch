@@ -6,7 +6,6 @@ import { Footer } from "@/components/Footer";
 import { TrendingNews } from "@/components/TrendingNews";
 import { NewsArticle, fetchViaProxy, fetchViaEdgeFunction, readFromCache, getFallbackArticles, transformArticle, categoryDisplayName, useCategoryNews } from "@/hooks/useNews";
 import { Button } from "@/components/ui/button";
-import { ArticleTopAd } from "@/components/ads/ArticleTopAd";
 import { supabase } from "@/integrations/supabase/client";
 import { useDocumentMeta, buildArticleJsonLd, buildBreadcrumbJsonLd } from "@/hooks/useDocumentMeta";
 
@@ -286,8 +285,6 @@ export default function ArticlePage() {
                 <span className="text-sm text-muted-foreground">Loading full article...</span>
               </div>
             )}
-
-            <ArticleTopAd />
 
             <div className="prose prose-lg max-w-none">
               {paragraphs.map((paragraph, index) => (
