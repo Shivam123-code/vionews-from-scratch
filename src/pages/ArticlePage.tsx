@@ -6,6 +6,7 @@ import { Footer } from "@/components/Footer";
 import { TrendingNews } from "@/components/TrendingNews";
 import { NewsArticle, fetchViaProxy, fetchViaEdgeFunction, readFromCache, getFallbackArticles, transformArticle, categoryDisplayName, useCategoryNews } from "@/hooks/useNews";
 import { Button } from "@/components/ui/button";
+import { ArticleTopAd } from "@/components/ads/ArticleTopAd";
 import { supabase } from "@/integrations/supabase/client";
 import { useDocumentMeta, buildArticleJsonLd, buildBreadcrumbJsonLd } from "@/hooks/useDocumentMeta";
 
