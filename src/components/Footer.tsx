@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Facebook, Twitter, Instagram, Youtube, Mail, Zap } from "lucide-react";
+import { FooterAd } from "@/components/ads/FooterAd";
 
 const footerLinks = {
   categories: [
