@@ -53,6 +53,8 @@ export function Header() {
           </span>
         </Link>
 
+        <HeaderAd />
+
         {/* Right actions */}
         <div className="flex items-center gap-2 md:gap-4">
           <button

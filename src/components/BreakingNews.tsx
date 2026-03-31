@@ -29,5 +29,7 @@ export function BreakingNews() {
         </div>
       </div>
     </div>
+    <BreakingNewsAd />
+    </>
   );
 }
