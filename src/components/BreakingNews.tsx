@@ -1,5 +1,6 @@
 import { AlertCircle } from "lucide-react";
 import { useNews } from "@/hooks/useNews";
+import { BreakingNewsAd } from "@/components/ads/BreakingNewsAd";
 
 export function BreakingNews() {
   const { data: articles } = useNews();
@@ -10,6 +11,7 @@ export function BreakingNews() {
   ];
 
   return (
+    <>
     <div className="breaking-news-bar">
       <div className="container flex items-center gap-2 sm:gap-4">
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
@@ -27,5 +29,7 @@ export function BreakingNews() {
         </div>
       </div>
     </div>
+    <BreakingNewsAd />
+    </>
   );
 }

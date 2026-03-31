@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Menu, Search, X, Zap } from "lucide-react";
+import { HeaderAd } from "@/components/ads/HeaderAd";
 import { Button } from "@/components/ui/button";
 
 const categories = [
@@ -51,6 +52,8 @@ export function Header() {
             <span style={{ color: 'hsl(var(--header-fg))' }}>News</span>
           </span>
         </Link>
+
+        <HeaderAd />
 
         {/* Right actions */}
         <div className="flex items-center gap-2 md:gap-4">
