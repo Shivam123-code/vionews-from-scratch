@@ -287,6 +287,8 @@ export default function ArticlePage() {
               </div>
             )}
 
+            <ArticleTopAd />
+
             <div className="prose prose-lg max-w-none">
               {paragraphs.map((paragraph, index) => (
                 <p key={index} className="mb-4 md:mb-6 text-foreground/90 leading-relaxed text-base md:text-lg">{paragraph}</p>
