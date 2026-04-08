@@ -1,6 +1,6 @@
 import { useParams, useLocation, Link, useNavigate } from "react-router-dom";
 import { useState, useEffect, useMemo } from "react";
-import { Clock, ArrowLeft, Share2, Facebook, Twitter, Loader2, MessageCircle, Copy, Check } from "lucide-react";
+import { Clock, ArrowLeft, Share2, Facebook, Twitter, Loader2, MessageCircle, Copy, Check, Home } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { TrendingNews } from "@/components/TrendingNews";
@@ -18,6 +18,37 @@ function getCategoryColor(categorySlug: string): string {
     technology: "bg-news-tech",
   };
   return colors[categorySlug] || "bg-primary";
+}
+
+function ArticleNotFound() {
+  useDocumentMeta({
+    title: "Article Not Found | VioNews",
+    description: "The article you're looking for doesn't exist or has been removed.",
+    canonical: "https://vionews.in",
+    noindex: true,
+  });
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      <div className="container py-16 md:py-24 flex flex-col items-center text-center">
+        <div className="w-20 h-20 rounded-full bg-destructive/10 flex items-center justify-center mb-6">
+          <span className="text-4xl font-bold text-destructive">404</span>
+        </div>
+        <h1 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">Article Not Found</h1>
+        <p className="text-muted-foreground mb-8 max-w-md">
+          The article you're looking for doesn't exist, has been removed, or the link may be outdated.
+        </p>
+        <Link to="/">
+          <Button size="lg" className="gap-2">
+            <Home className="h-4 w-4" />
+            Back to Homepage
+          </Button>
+        </Link>
+      </div>
+      <Footer />
+    </div>
+  );
 }
 
 export default function ArticlePage() {
@@ -47,6 +78,7 @@ export default function ArticlePage() {
       canonical,
       ogType: "article" as const,
       ogImage: article.image,
+      noindex: article.allowIndexing === false,
       jsonLd: [
         buildArticleJsonLd({
           title: article.title,
@@ -134,7 +166,6 @@ export default function ArticlePage() {
     const placeholder = trimmed.toLowerCase();
     if (placeholder.includes('only available in paid plan') ||
         placeholder.includes('available in paid plan')) return false;
-    // Content must be substantially longer than excerpt to be "real"
     if (excerpt && trimmed.length <= excerpt.trim().length + 20) return false;
     return trimmed.length > 200;
   };
@@ -192,22 +223,13 @@ export default function ArticlePage() {
   }
 
   if (!article) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="container py-16 text-center">
-          <h1 className="text-3xl font-bold mb-4">Article Not Found</h1>
-          <p className="text-muted-foreground mb-8">The article you're looking for doesn't exist or has expired.</p>
-          <Link to="/"><Button>Return to Home</Button></Link>
-        </div>
-        <Footer />
-      </div>
-    );
+    return <ArticleNotFound />;
   }
 
   const categoryColor = getCategoryColor(article.categorySlug);
   const displayContent = (hasRealContent(article.content) ? article.content : null) || fullContent || article.excerpt;
   const paragraphs = displayContent.split(/\n+/).filter((p) => p.trim()).map((p) => p.trim());
+  const catDisplayName = categoryDisplayName[article.categorySlug] || article.category;
 
   return (
     <div className="min-h-screen bg-background">
@@ -219,7 +241,7 @@ export default function ArticlePage() {
           <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors shrink-0">Home</Link>
           <span className="text-muted-foreground shrink-0">/</span>
           <Link to={`/${article.categorySlug}`} className="text-muted-foreground hover:text-foreground transition-colors shrink-0">
-            {categoryDisplayName[article.categorySlug] || article.category}
+            {catDisplayName}
           </Link>
           <span className="text-muted-foreground shrink-0">/</span>
           <span className="text-foreground line-clamp-1 min-w-0">{article.title}</span>
@@ -292,17 +314,21 @@ export default function ArticlePage() {
               ))}
             </div>
 
+            {/* Related Articles - More from [Category] */}
             {related.length > 0 && (
               <div className="mt-12 pt-8 border-t border-border">
-                <h2 className="text-xl font-bold mb-6">Related Articles</h2>
+                <h2 className="text-xl font-bold mb-6">More from {catDisplayName}</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   {related.map((rel) => (
                     <Link key={rel.id} to={`/${rel.categorySlug}/${rel.slug}`} className="news-card group block">
-                      <div className="aspect-[4/3] overflow-hidden">
+                      <div className="aspect-[4/3] overflow-hidden rounded-t-lg">
                         <img src={rel.image} alt={rel.title} loading="lazy" width={400} height={300} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" onError={(e) => { (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800&h=600&fit=crop"; }} />
                       </div>
                       <div className="p-3">
-                        <h3 className="text-sm font-semibold line-clamp-2 group-hover:text-primary transition-colors">{rel.title}</h3>
+                        <span className={`text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded ${getCategoryColor(rel.categorySlug)} text-white`}>
+                          {rel.category}
+                        </span>
+                        <h3 className="text-sm font-semibold line-clamp-2 mt-2 group-hover:text-primary transition-colors">{rel.title}</h3>
                         <p className="text-xs text-muted-foreground mt-1">{rel.time}</p>
                       </div>
                     </Link>
