@@ -311,13 +311,21 @@ Deno.serve(async (req) => {
             }
           }
 
-          // Final content quality check — minimum 350 words
+          // Final content quality check
           const finalContent = generatedContent || article.description || '';
-          if (wordCount(finalContent) < 350) {
-            console.log(`Skipped final quality check (${wordCount(finalContent)} words): ${article.title.substring(0, 50)}`);
+          const finalWc = wordCount(finalContent);
+          
+          // Skip articles under 300 words entirely
+          if (finalWc < 300) {
+            console.log(`Skipped final quality check (${finalWc} words): ${article.title.substring(0, 50)}`);
             totalSkipped++;
             continue;
           }
+
+          // Determine indexing: 350+ words = indexable, 300-349 = noindex
+          const allowIndexing = finalWc >= 350;
+          // Articles between 300-349 words: publish but noindex
+          const shouldPublish = autoPublish;
 
           slug = makeUniqueSlug(slug, existingSlugs);
           existingSlugs.add(slug);
@@ -339,10 +347,17 @@ Deno.serve(async (req) => {
             source_reference: article.title,
             seo_title: seoTitle,
             meta_description: metaDescription,
-            is_published: autoPublish,
+            is_published: shouldPublish,
+            allow_indexing: allowIndexing,
             keywords: keywords,
             views: `${Math.floor(Math.random() * 100) + 10}K`,
           };
+
+          // Throttled insert: wait 3 minutes between inserts for natural pacing
+          if (totalInserted > 0) {
+            console.log(`Throttling: waiting 3 minutes before next insert...`);
+            await new Promise(r => setTimeout(r, 180000));
+          }
 
           const { error: insertError } = await supabase
             .from('articles')
@@ -354,7 +369,7 @@ Deno.serve(async (req) => {
             errors.push(`DB error: ${insertError.message}`);
           } else {
             totalInserted++;
-            console.log(`Inserted: ${article.title.substring(0, 60)}...`);
+            console.log(`Inserted (${finalWc}w, indexable=${allowIndexing}): ${article.title.substring(0, 60)}...`);
           }
         }
 
