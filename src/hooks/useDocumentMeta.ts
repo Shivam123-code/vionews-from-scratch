@@ -11,6 +11,7 @@ export interface DocumentMeta {
   ogType?: "website" | "article";
   ogImage?: string;
   jsonLd?: Record<string, any> | Record<string, any>[];
+  noindex?: boolean;
 }
 
 function setMetaTag(property: string, content: string, isName = false) {
@@ -79,6 +80,19 @@ export function useDocumentMeta(meta: DocumentMeta) {
     // Canonical
     setCanonical(canonical);
 
+    // Robots noindex
+    let robotsEl = document.querySelector('meta[name="robots"]') as HTMLMetaElement | null;
+    if (meta.noindex) {
+      if (!robotsEl) {
+        robotsEl = document.createElement("meta");
+        robotsEl.setAttribute("name", "robots");
+        document.head.appendChild(robotsEl);
+      }
+      robotsEl.content = "noindex, nofollow";
+    } else if (robotsEl) {
+      robotsEl.remove();
+    }
+
     // JSON-LD
     if (jsonLd) {
       setJsonLd(jsonLd);
@@ -86,8 +100,10 @@ export function useDocumentMeta(meta: DocumentMeta) {
 
     return () => {
       document.querySelectorAll('script[data-seo="vionews"]').forEach(el => el.remove());
+      const rb = document.querySelector('meta[name="robots"]');
+      if (rb) rb.remove();
     };
-  }, [meta.title, meta.description, meta.canonical, meta.ogType, meta.ogImage, meta.jsonLd]);
+  }, [meta.title, meta.description, meta.canonical, meta.ogType, meta.ogImage, meta.jsonLd, meta.noindex]);
 }
 
 // Helper to build NewsArticle JSON-LD
