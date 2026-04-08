@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       articles: {
         Row: {
+          allow_indexing: boolean | null
           author: string | null
           author_role: string | null
           category: string
@@ -39,6 +40,7 @@ export type Database = {
           views: string | null
         }
         Insert: {
+          allow_indexing?: boolean | null
           author?: string | null
           author_role?: string | null
           category: string
@@ -62,6 +64,7 @@ export type Database = {
           views?: string | null
         }
         Update: {
+          allow_indexing?: boolean | null
           author?: string | null
           author_role?: string | null
           category?: string

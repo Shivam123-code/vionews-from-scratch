@@ -18,6 +18,7 @@ export interface NewsArticle {
   views: string;
   link?: string;
   source?: string;
+  allowIndexing?: boolean;
 }
 
 function getRelativeTime(dateString: string | null): string {
@@ -82,6 +83,7 @@ export function transformArticle(article: any): NewsArticle {
     views: article.views || '0K',
     link: article.source_url,
     source: article.source_name,
+    allowIndexing: article.allow_indexing !== false,
   };
 }
 
