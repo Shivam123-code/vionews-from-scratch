@@ -63,7 +63,9 @@ export function Header() {
             <Search className="h-5 w-5" />
           </button>
           <Button size="sm" className="hidden sm:inline-flex">
-            Subscribe
+            <a href="https://x.com/vionewsbusiness" target="_blank" rel="noopener noreferrer">
+              Follow on 𝕏
+            </a>
           </Button>
         </div>
       </div>
