@@ -80,6 +80,20 @@ Requirements:
 - keywords: Array of exactly 5-7 relevant keywords/phrases for this article`;
 }
 
+function buildFaqPrompt(title: string, content: string, category: string): string {
+  const body = (content || '').slice(0, 3000);
+  return `You are a news editor writing a FAQ section for a news article.
+
+TITLE: ${title}
+CATEGORY: ${category}
+ARTICLE:
+${body}
+
+Generate exactly 4 specific FAQs a reader would have after reading this article. Each answer must be 2-3 sentences (max 60 words), factual, and grounded in the article. Avoid generic questions.
+
+Respond ONLY with valid JSON: {"faq":[{"question":"...","answer":"..."},{"question":"...","answer":"..."},{"question":"...","answer":"..."},{"question":"...","answer":"..."}]}`;
+}
+
 function titlesSimilar(title1: string, title2: string): boolean {
   const normalize = (t: string) => t.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 3);
   const words1 = normalize(title1);
@@ -263,6 +277,7 @@ Deno.serve(async (req) => {
           let metaDescription = (article.description || '').substring(0, 155);
           let slug = cleanSlug(article.title.substring(0, 80));
           let keywords: string[] = [category];
+          let faq: { question: string; answer: string }[] = [];
 
           if (openrouterApiKey) {
             try {
@@ -305,6 +320,28 @@ Deno.serve(async (req) => {
               } catch { /* use defaults */ }
 
               // Small delay to avoid rate limiting
+              await new Promise(r => setTimeout(r, 500));
+
+              // Generate FAQ
+              try {
+                const faqText = await callOpenRouter(
+                  openrouterApiKey,
+                  [{ role: 'user', content: buildFaqPrompt(article.title, generatedContent, CATEGORY_DISPLAY[category] || category) }],
+                  900,
+                  0.5
+                );
+                const faqMatch = faqText.match(/\{[\s\S]*\}/);
+                if (faqMatch) {
+                  const parsed = JSON.parse(faqMatch[0]);
+                  if (Array.isArray(parsed.faq)) {
+                    faq = parsed.faq
+                      .filter((f: any) => f && typeof f.question === 'string' && typeof f.answer === 'string')
+                      .slice(0, 4);
+                  }
+                }
+              } catch (faqErr) {
+                console.warn('FAQ generation error:', faqErr);
+              }
               await new Promise(r => setTimeout(r, 500));
             } catch (aiErr) {
               console.warn('OpenRouter generation error:', aiErr);
@@ -350,6 +387,7 @@ Deno.serve(async (req) => {
             is_published: shouldPublish,
             allow_indexing: allowIndexing,
             keywords: keywords,
+            faq: faq.length > 0 ? faq : null,
             views: `${Math.floor(Math.random() * 100) + 10}K`,
           };
 

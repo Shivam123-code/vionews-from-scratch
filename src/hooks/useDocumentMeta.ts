@@ -80,18 +80,17 @@ export function useDocumentMeta(meta: DocumentMeta) {
     // Canonical
     setCanonical(canonical);
 
-    // Robots noindex
+    // Robots: always allow large image previews (helps Google Discover).
+    // Combine with noindex/nofollow when the page should not be indexed.
     let robotsEl = document.querySelector('meta[name="robots"]') as HTMLMetaElement | null;
-    if (meta.noindex) {
-      if (!robotsEl) {
-        robotsEl = document.createElement("meta");
-        robotsEl.setAttribute("name", "robots");
-        document.head.appendChild(robotsEl);
-      }
-      robotsEl.content = "noindex, nofollow";
-    } else if (robotsEl) {
-      robotsEl.remove();
+    if (!robotsEl) {
+      robotsEl = document.createElement("meta");
+      robotsEl.setAttribute("name", "robots");
+      document.head.appendChild(robotsEl);
     }
+    robotsEl.content = meta.noindex
+      ? "noindex, nofollow, max-image-preview:large"
+      : "max-image-preview:large";
 
     // JSON-LD
     if (jsonLd) {
@@ -100,8 +99,6 @@ export function useDocumentMeta(meta: DocumentMeta) {
 
     return () => {
       document.querySelectorAll('script[data-seo="vionews"]').forEach(el => el.remove());
-      const rb = document.querySelector('meta[name="robots"]');
-      if (rb) rb.remove();
     };
   }, [meta.title, meta.description, meta.canonical, meta.ogType, meta.ogImage, meta.jsonLd, meta.noindex]);
 }

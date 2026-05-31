@@ -4,7 +4,7 @@ import { Clock, ArrowLeft, Share2, Facebook, Twitter, Loader2, MessageCircle, Co
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { TrendingNews } from "@/components/TrendingNews";
-import { NewsArticle, fetchViaProxy, fetchViaEdgeFunction, readFromCache, getFallbackArticles, transformArticle, categoryDisplayName, useCategoryNews } from "@/hooks/useNews";
+import { NewsArticle, FaqItem, fetchViaProxy, fetchViaEdgeFunction, readFromCache, getFallbackArticles, transformArticle, categoryDisplayName, useCategoryNews } from "@/hooks/useNews";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useDocumentMeta, buildArticleJsonLd, buildBreadcrumbJsonLd } from "@/hooks/useDocumentMeta";
@@ -62,6 +62,8 @@ export default function ArticlePage() {
   const [fullContent, setFullContent] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasGenerated, setHasGenerated] = useState(false);
+  const [faq, setFaq] = useState<FaqItem[] | null>(null);
+  const [hasRequestedFaq, setHasRequestedFaq] = useState(false);
 
   // Related articles
   const { data: relatedArticles } = useCategoryNews(article?.categorySlug || category || 'world');
@@ -72,6 +74,34 @@ export default function ArticlePage() {
     if (!article) return null;
     const catName = categoryDisplayName[article.categorySlug] || article.category;
     const canonical = `https://vionews.in/${article.categorySlug}/${article.slug}`;
+    const jsonLd: Record<string, any>[] = [
+      buildArticleJsonLd({
+        title: article.title,
+        seoTitle: article.title,
+        description: article.excerpt || article.title,
+        image: article.image,
+        publishedAt: article.date,
+        categorySlug: article.categorySlug,
+        slug: article.slug,
+      }),
+      buildBreadcrumbJsonLd([
+        { name: "Home", url: "https://vionews.in" },
+        { name: catName, url: `https://vionews.in/${article.categorySlug}` },
+        { name: article.title },
+      ]),
+    ];
+    const activeFaq = faq || article.faq;
+    if (activeFaq && activeFaq.length > 0) {
+      jsonLd.push({
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: activeFaq.map((f) => ({
+          "@type": "Question",
+          name: f.question,
+          acceptedAnswer: { "@type": "Answer", text: f.answer },
+        })),
+      });
+    }
     return {
       title: `${article.title} | VioNews`,
       description: article.excerpt?.slice(0, 155) || article.title,
@@ -79,24 +109,9 @@ export default function ArticlePage() {
       ogType: "article" as const,
       ogImage: article.image,
       noindex: article.allowIndexing === false,
-      jsonLd: [
-        buildArticleJsonLd({
-          title: article.title,
-          seoTitle: article.title,
-          description: article.excerpt || article.title,
-          image: article.image,
-          publishedAt: article.date,
-          categorySlug: article.categorySlug,
-          slug: article.slug,
-        }),
-        buildBreadcrumbJsonLd([
-          { name: "Home", url: "https://vionews.in" },
-          { name: catName, url: `https://vionews.in/${article.categorySlug}` },
-          { name: article.title },
-        ]),
-      ],
+      jsonLd,
     };
-  }, [article]);
+  }, [article, faq]);
 
   const fallbackCanonical = category && slug
     ? `https://vionews.in/${category}/${slug}`
@@ -177,6 +192,28 @@ export default function ArticlePage() {
       setHasGenerated(true);
     }
   }, [article]);
+
+  // Generate FAQ on-demand for articles missing one
+  useEffect(() => {
+    if (!article || hasRequestedFaq) return;
+    if (article.faq && article.faq.length > 0) return;
+    const contentForFaq = (hasRealContent(article.content) ? article.content : fullContent) || '';
+    if (!contentForFaq || contentForFaq.length < 200) return;
+    setHasRequestedFaq(true);
+    supabase.functions.invoke("generate-faq", {
+      body: {
+        articleId: article.id,
+        title: article.title,
+        excerpt: article.excerpt,
+        content: contentForFaq,
+        category: article.category,
+      },
+    }).then(({ data }) => {
+      if (data?.success && Array.isArray(data.faq) && data.faq.length > 0) {
+        setFaq(data.faq);
+      }
+    }).catch((err) => console.warn('FAQ generation failed:', err));
+  }, [article, fullContent, hasRequestedFaq]);
 
   const generateFullArticle = async () => {
     if (!article || isGenerating) return;
@@ -273,16 +310,20 @@ export default function ArticlePage() {
               </div>
             </div>
 
-            <div className="aspect-video rounded-lg overflow-hidden mb-6 md:mb-8">
+            <figure className="rounded-lg overflow-hidden mb-6 md:mb-8 w-full">
               <img
                 src={article.image}
-                loading="lazy"
-                className="w-full h-full object-cover"
+                alt={article.title}
+                width={1200}
+                height={675}
+                loading="eager"
+                fetchPriority="high"
+                className="w-full h-auto object-cover aspect-video"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1495020689067-958852a7765e?w=800&h=600&fit=crop";
+                  (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1495020689067-958852a7765e?w=1600&h=900&fit=crop";
                 }}
               />
-            </div>
+            </figure>
 
             {/* Share buttons */}
             <div className="flex items-center gap-2 sm:gap-3 mb-6 md:mb-8 flex-wrap">
@@ -313,6 +354,35 @@ export default function ArticlePage() {
                 <p key={index} className="mb-4 md:mb-6 text-foreground/90 leading-relaxed text-base md:text-lg">{paragraph}</p>
               ))}
             </div>
+
+            {/* FAQ Section */}
+            {(() => {
+              const activeFaq = faq || article.faq;
+              if (!activeFaq || activeFaq.length === 0) return null;
+              return (
+                <section className="mt-10 md:mt-12 pt-8 border-t border-border" aria-labelledby="faq-heading">
+                  <h2 id="faq-heading" className="text-xl md:text-2xl font-bold mb-4 md:mb-6">
+                    Frequently Asked Questions
+                  </h2>
+                  <div className="space-y-4">
+                    {activeFaq.map((item, idx) => (
+                      <details
+                        key={idx}
+                        className="group rounded-lg border border-border bg-card/40 p-4 md:p-5 open:bg-card/70 transition-colors"
+                      >
+                        <summary className="cursor-pointer list-none flex items-start justify-between gap-4">
+                          <h3 className="text-base md:text-lg font-semibold text-foreground">{item.question}</h3>
+                          <span className="text-primary text-xl leading-none mt-0.5 group-open:rotate-45 transition-transform">+</span>
+                        </summary>
+                        <p className="mt-3 text-sm md:text-base text-foreground/80 leading-relaxed">
+                          {item.answer}
+                        </p>
+                      </details>
+                    ))}
+                  </div>
+                </section>
+              );
+            })()}
 
             {/* Related Articles - More from [Category] */}
             {related.length > 0 && (
