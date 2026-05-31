@@ -19,6 +19,8 @@ import ContactPage from "./pages/ContactPage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import TermsPage from "./pages/TermsPage";
 import DisclaimerPage from "./pages/DisclaimerPage";
+import TeamPage from "./pages/TeamPage";
+import FaqPage from "./pages/FaqPage";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +44,9 @@ const App = () => (
           <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
           <Route path="/terms-of-service" element={<TermsPage />} />
           <Route path="/disclaimer" element={<DisclaimerPage />} />
+          <Route path="/team" element={<TeamPage />} />
+          <Route path="/authors" element={<TeamPage />} />
+          <Route path="/faq" element={<FaqPage />} />
           {/* Search */}
           <Route path="/search" element={<SearchPage />} />
           {/* Admin */}

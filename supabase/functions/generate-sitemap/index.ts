@@ -15,6 +15,8 @@ const STATIC_PAGES = [
   { loc: '/politics', priority: '0.8', changefreq: 'hourly' },
   { loc: '/sports', priority: '0.8', changefreq: 'hourly' },
   { loc: '/about', priority: '0.3', changefreq: 'monthly' },
+  { loc: '/team', priority: '0.4', changefreq: 'monthly' },
+  { loc: '/faq', priority: '0.4', changefreq: 'monthly' },
   { loc: '/contact', priority: '0.3', changefreq: 'monthly' },
   { loc: '/privacy-policy', priority: '0.2', changefreq: 'monthly' },
   { loc: '/terms-of-service', priority: '0.2', changefreq: 'monthly' },
