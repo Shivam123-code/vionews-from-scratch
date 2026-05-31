@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { fallbackArticles } from "@/data/fallbackNews";
 
+export interface FaqItem { question: string; answer: string }
+
 export interface NewsArticle {
   id: string;
   slug: string;
@@ -19,6 +21,7 @@ export interface NewsArticle {
   link?: string;
   source?: string;
   allowIndexing?: boolean;
+  faq?: FaqItem[];
 }
 
 function getRelativeTime(dateString: string | null): string {
@@ -84,6 +87,7 @@ export function transformArticle(article: any): NewsArticle {
     link: article.source_url,
     source: article.source_name,
     allowIndexing: article.allow_indexing !== false,
+    faq: Array.isArray(article.faq) ? article.faq : undefined,
   };
 }
 
