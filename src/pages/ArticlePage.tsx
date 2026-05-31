@@ -89,6 +89,14 @@ export default function ArticlePage() {
         { name: catName, url: `https://vionews.in/${article.categorySlug}` },
         { name: article.title },
       ]),
+      {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        name: article.author || "VioNews Staff",
+        url: "https://vionews.in/team",
+        jobTitle: article.authorRole || "Correspondent",
+        worksFor: { "@type": "Organization", name: "VioNews", url: "https://vionews.in" },
+      },
     ];
     const activeFaq = faq || article.faq;
     if (activeFaq && activeFaq.length > 0) {
