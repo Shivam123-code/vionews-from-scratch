@@ -81,16 +81,14 @@ export function useDocumentMeta(meta: DocumentMeta) {
     setCanonical(canonical);
 
     // Robots: always allow large image previews (helps Google Discover).
-    // Combine with noindex/nofollow when the page should not be indexed.
+    // Never emit noindex/nofollow — all pages should be indexable.
     let robotsEl = document.querySelector('meta[name="robots"]') as HTMLMetaElement | null;
     if (!robotsEl) {
       robotsEl = document.createElement("meta");
       robotsEl.setAttribute("name", "robots");
       document.head.appendChild(robotsEl);
     }
-    robotsEl.content = meta.noindex
-      ? "noindex, nofollow, max-image-preview:large"
-      : "max-image-preview:large";
+    robotsEl.content = "max-image-preview:large";
 
     // JSON-LD
     if (jsonLd) {
