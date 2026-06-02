@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const AI_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 
 interface FaqItem { question: string; answer: string }
 
@@ -25,14 +25,14 @@ Respond ONLY with valid JSON in this exact shape:
 }
 
 async function generateFaq(apiKey: string, title: string, excerpt: string, content: string, category: string): Promise<FaqItem[]> {
-  const response = await fetch(OPENROUTER_URL, {
+  const response = await fetch(AI_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
+      model: 'google/gemini-3-flash-preview',
       messages: [{ role: 'user', content: buildPrompt(title, excerpt, content, category) }],
       max_tokens: 900,
       temperature: 0.5,
@@ -41,7 +41,7 @@ async function generateFaq(apiKey: string, title: string, excerpt: string, conte
 
   if (!response.ok) {
     const err = await response.text();
-    throw new Error(`OpenRouter ${response.status}: ${err.slice(0, 120)}`);
+    throw new Error(`AI gateway ${response.status}: ${err.slice(0, 120)}`);
   }
 
   const data = await response.json();
@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
 
   try {
     const { articleId, title, excerpt, content, category } = await req.json();
-    const apiKey = Deno.env.get('OPENROUTER_API_KEY');
+    const apiKey = Deno.env.get('LOVABLE_API_KEY');
     if (!apiKey) {
       return new Response(JSON.stringify({ success: false, error: 'AI not configured' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
