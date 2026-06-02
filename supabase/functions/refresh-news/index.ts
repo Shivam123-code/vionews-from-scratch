@@ -36,7 +36,7 @@ const CATEGORY_DISPLAY: Record<string, string> = {
   sports: 'Sports',
 };
 
-const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const AI_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 
 const SYSTEM_PROMPT = `You are a senior news journalist at VioNews, a professional digital news platform for US readers. You write original, factual, engaging news articles.
 
@@ -166,14 +166,14 @@ function wordCount(text: string): number {
 }
 
 async function callOpenRouter(apiKey: string, messages: { role: string; content: string }[], maxTokens: number, temperature: number): Promise<string> {
-  const response = await fetch(OPENROUTER_URL, {
+  const response = await fetch(AI_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
+      model: 'google/gemini-3-flash-preview',
       messages,
       max_tokens: maxTokens,
       temperature,
@@ -182,7 +182,7 @@ async function callOpenRouter(apiKey: string, messages: { role: string; content:
 
   if (!response.ok) {
     const errText = await response.text();
-    throw new Error(`OpenRouter API error (${response.status}): ${errText.substring(0, 100)}`);
+    throw new Error(`AI gateway error (${response.status}): ${errText.substring(0, 100)}`);
   }
 
   const data = await response.json();
@@ -198,7 +198,7 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get('NEWSDATA_API_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    const openrouterApiKey = Deno.env.get('OPENROUTER_API_KEY');
+    const openrouterApiKey = Deno.env.get('LOVABLE_API_KEY');
 
     if (!apiKey || !supabaseUrl || !supabaseServiceKey) {
       console.error('Missing required environment variables');
