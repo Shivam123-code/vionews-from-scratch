@@ -128,6 +128,126 @@ function makeUniqueSlug(baseSlug: string, existingSlugs: Set<string>): string {
   return fallback;
 }
 
+/**
+ * Keyword-based re-categorizer.
+ * newsdata.io's own category labels are often wrong (politics filed as business, etc.).
+ * We score each supported category by keyword hits in the title + description,
+ * then override the API category if we find a stronger signal.
+ * Multi-word keywords score 2 points; single words score 1 point.
+ * We only override when the winning score is >= 2 to avoid false positives.
+ */
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  politics: [
+    // US government & institutions
+    'white house', 'oval office', 'executive order', 'state department',
+    'attorney general', 'supreme court', 'congress', 'senate', 'house of representatives',
+    'department of justice', 'pentagon', 'cia', 'fbi', 'nsa',
+    // Political figures & parties
+    'trump', 'biden', 'harris', 'democrat', 'republican', 'gop',
+    'maga', 'administration', 'cabinet', 'governor', 'mayor', 'senator',
+    // Political actions
+    'election', 'vote', 'ballot', 'campaign', 'poll', 'primary', 'midterm',
+    'legislation', 'bill passed', 'filibuster', 'impeach', 'veto', 'pardon',
+    'sanction', 'rally', 'debate', 'inauguration',
+    // International politics / diplomacy
+    'zelensky', 'putin', 'netanyahu', 'xi jinping', 'nato', 'un security council',
+    'diplomatic', 'ambassador', 'treaty', 'ceasefire', 'foreign policy',
+    'immigration policy', 'border policy', 'tariff', 'trade deal',
+    // Law enforcement & justice (national-level)
+    'indicted', 'charged', 'prosecution', 'federal charges',
+  ],
+  sports: [
+    // Leagues & governing bodies
+    'nfl', 'nba', 'mlb', 'nhl', 'mls', 'fifa', 'uefa', 'ncaa',
+    'super bowl', 'world cup', 'stanley cup', 'nba finals', 'world series',
+    // Events
+    'olympics', 'championship', 'playoff', 'tournament', 'draft',
+    'season opener', 'trade deadline', 'free agency', 'transfer window',
+    // Actions & roles
+    'coach', 'athlete', 'player', 'roster', 'starting lineup',
+    'home run', 'touchdown', 'slam dunk', 'hat trick', 'shutout',
+    // Sports
+    'basketball', 'football', 'baseball', 'soccer', 'tennis', 'golf',
+    'boxing', 'ufc', 'mma', 'formula 1', 'nascar', 'swimming', 'track',
+    // Venues & teams (common US teams)
+    'stadium', 'arena', 'bears', 'bulls', 'lakers', 'patriots', 'cowboys',
+    'yankees', 'dodgers', 'warriors', 'chiefs', 'eagles',
+  ],
+  technology: [
+    // AI / ML
+    'artificial intelligence', 'machine learning', 'large language model',
+    'chatgpt', 'openai', 'gemini', 'claude', 'llm', 'generative ai',
+    // Big tech companies
+    'apple', 'google', 'microsoft', 'amazon', 'meta', 'nvidia', 'tesla',
+    'spacex', 'intel', 'qualcomm', 'amd', 'arm holdings',
+    // Products
+    'iphone', 'android', 'chatbot', 'software update', 'operating system',
+    'app store', 'ide', 'developer tool', 'api', 'open source',
+    // Topics
+    'startup', 'silicon valley', 'cybersecurity', 'data breach', 'ransomware',
+    'hack', 'robot', 'automation', 'cloud computing', 'semiconductor',
+    'microchip', 'quantum computing', 'blockchain', 'cryptocurrency',
+    'satellite', 'rocket launch', 'tech layoffs', 'venture capital',
+  ],
+  world: [
+    // Conflict & military
+    'war', 'conflict', 'military', 'troops', 'airstrike', 'missile strike',
+    'drone attack', 'bombing', 'invasion', 'occupation', 'rebel', 'militia',
+    // Crisis & disasters
+    'earthquake', 'tsunami', 'flood', 'wildfire', 'hurricane', 'typhoon',
+    'refugee', 'humanitarian crisis', 'famine', 'epidemic', 'pandemic',
+    // Regions & geopolitics (non-US)
+    'ukraine', 'russia', 'israel', 'gaza', 'west bank', 'china', 'taiwan',
+    'iran', 'north korea', 'middle east', 'sub-saharan africa', 'south asia',
+    'european union', 'eu parliament', 'g7', 'g20', 'un general assembly',
+    // Generic global signals
+    'international', 'global summit', 'world leaders', 'foreign',
+  ],
+  business: [
+    // Markets & macro
+    'stock market', 'wall street', 'federal reserve', 'interest rate',
+    'inflation', 'recession', 'gdp', 'cpi', 'consumer price', 'jobs report',
+    'unemployment', 'nasdaq', 'dow jones', 'sp 500', 's&p 500',
+    // Corporate actions
+    'merger', 'acquisition', 'ipo', 'earnings report', 'revenue', 'profit',
+    'loss', 'ceo', 'layoffs', 'bankruptcy', 'restructuring', 'buyback',
+    // Finance & trade
+    'investment', 'hedge fund', 'private equity', 'venture capital', 'bonds',
+    'trade war', 'export', 'import', 'supply chain', 'retail sales',
+  ],
+};
+
+const VALID_CATEGORIES = new Set(['world', 'business', 'technology', 'politics', 'sports']);
+
+function recategorize(title: string, description: string, apiCategory: string): string {
+  if (!VALID_CATEGORIES.has(apiCategory)) return 'world';
+
+  const text = `${title} ${description}`.toLowerCase();
+  const scores: Record<string, number> = {};
+
+  for (const [cat, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    scores[cat] = 0;
+    for (const kw of keywords) {
+      if (text.includes(kw)) {
+        // Multi-word phrases are more specific → weight 2x
+        scores[cat] += kw.includes(' ') ? 2 : 1;
+      }
+    }
+  }
+
+  // Sort by score descending
+  const ranked = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+  const [bestCat, bestScore] = ranked[0];
+
+  // Only override when we have a meaningful signal and it differs from API label
+  if (bestScore >= 2 && bestCat !== apiCategory) {
+    console.log(`Recategorized "${title.substring(0, 50)}" : ${apiCategory} → ${bestCat} (score=${bestScore})`);
+    return bestCat;
+  }
+
+  return apiCategory;
+}
+
 const LOCAL_NEWS_KEYWORDS = [
   // Generic local/municipal
   'city council', 'local council', 'parish', 'borough', 'ward',
@@ -367,14 +487,18 @@ Deno.serve(async (req) => {
           slug = makeUniqueSlug(slug, existingSlugs);
           existingSlugs.add(slug);
 
+          // Smart re-categorization: override newsdata.io's label when our
+          // keyword scoring detects a stronger category signal
+          const correctedCategory = recategorize(article.title, article.description || '', category);
+
           const articleRecord = {
             id: article.article_id,
             slug: slug,
             title: article.title,
             excerpt: (article.description || '').substring(0, 300),
             content: finalContent,
-            category: CATEGORY_DISPLAY[category] || category,
-            category_slug: category,
+            category: CATEGORY_DISPLAY[correctedCategory] || correctedCategory,
+            category_slug: correctedCategory,
             published_at: article.pubDate ? new Date(article.pubDate).toISOString() : new Date().toISOString(),
             author: 'VioNews Staff',
             author_role: 'Correspondent',
