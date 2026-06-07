@@ -273,7 +273,7 @@ Deno.serve(async (req) => {
           existingTitles.push(article.title);
 
           let generatedContent = '';
-          let seoTitle = article.title.substring(0, 60);
+          let seoTitle = article.title; // full title — AI will override if available
           let metaDescription = (article.description || '').substring(0, 155);
           let slug = cleanSlug(article.title.substring(0, 80));
           let keywords: string[] = [category];

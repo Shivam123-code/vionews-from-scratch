@@ -23,6 +23,32 @@ const STATIC_PAGES = [
   { loc: '/disclaimer', priority: '0.2', changefreq: 'monthly' },
 ];
 
+/**
+ * Fix mojibake: UTF-8 smart quotes/dashes that were decoded as Latin-1.
+ * e.g. the RIGHT SINGLE QUOTATION MARK (U+2019, bytes E2 80 99) gets
+ * stored/served as the 3-character sequence â€™ when interpreted as Latin-1.
+ */
+function fixEncoding(str: string): string {
+  return str
+    // â€™  →  '  (right single quote U+2019)
+    .replace(/â€™/g, "'")
+    // â€˜  →  '  (left single quote U+2018)
+    .replace(/â€˜/g, "'")
+    // â€œ  →  "  (left double quote U+201C)
+    .replace(/â€œ/g, '"')
+    // â€  →  "  (right double quote U+201D — note: bare â€ with trailing non-ASCII)
+    .replace(/â€(?=[^˜œ™\u2018\u2019\u201c\u201d]|$)/g, '"')
+    // â€"  →  –  (en dash U+2013)
+    .replace(/â€"/g, '-')
+    // â€"  →  —  (em dash U+2014)
+    .replace(/â€"/g, '-')
+    // â€¦  →  …  (ellipsis U+2026)
+    .replace(/â€¦/g, '...')
+    // Catch-all: strip remaining Ã/â sequences that are unrecognised mojibake
+    .replace(/[Ã][^\s]/g, '')
+    .trim();
+}
+
 function escapeXml(str: string): string {
   return str
     .replace(/&/g, '&amp;')
@@ -50,7 +76,7 @@ Deno.serve(async (req) => {
       const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
       const { data: articles } = await supabase
         .from('articles')
-        .select('slug, category_slug, seo_title, title, published_at, keywords')
+        .select('slug, category_slug, category, seo_title, title, published_at, keywords')
         .eq('is_published', true)
         .gte('published_at', cutoff)
         .order('published_at', { ascending: false });
@@ -60,9 +86,13 @@ Deno.serve(async (req) => {
       xml += `  xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">\n`;
 
       for (const a of (articles || [])) {
-        const articleUrl = `${SITE_URL}/${a.category_slug}/${a.slug}`;
+        // Use category_slug from DB; fall back to lowercased category display name
+        const catSlug = (a.category_slug || (a.category || '').toLowerCase()).trim();
+        const articleUrl = `${SITE_URL}/${catSlug}/${a.slug}`;
         const pubDate = a.published_at ? new Date(a.published_at).toISOString() : new Date().toISOString();
-        const title = escapeXml((a.seo_title || a.title).trim());
+        // Fix encoding BEFORE XML-escaping; use the full title — never truncate
+        const rawTitle = (a.seo_title || a.title || '').trim();
+        const title = escapeXml(fixEncoding(rawTitle));
         const keywords = (a.keywords || []).join(', ');
 
         xml += `  <url>\n`;
