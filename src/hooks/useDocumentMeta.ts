@@ -25,14 +25,20 @@ function setMetaTag(property: string, content: string, isName = false) {
   el.content = content;
 }
 
-function setCanonical(url: string) {
+function setCanonical(url: string): () => void {
   let el = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
   if (!el) {
     el = document.createElement("link");
     el.rel = "canonical";
+    el.setAttribute("data-managed", "vionews");
     document.head.appendChild(el);
   }
   el.href = url;
+  // Return cleanup that resets href so navigating away doesn't leave a stale canonical
+  return () => {
+    const managed = document.querySelector('link[rel="canonical"][data-managed="vionews"]') as HTMLLinkElement | null;
+    if (managed) managed.href = "";
+  };
 }
 
 function setJsonLd(data: Record<string, any> | Record<string, any>[]) {
@@ -77,8 +83,8 @@ export function useDocumentMeta(meta: DocumentMeta) {
     setMetaTag("twitter:description", description, true);
     setMetaTag("twitter:image", ogImage, true);
 
-    // Canonical
-    setCanonical(canonical);
+    // Canonical — write immediately and capture cleanup
+    const cleanupCanonical = setCanonical(canonical);
 
     // Robots: always allow large image previews (helps Google Discover).
     // Never emit noindex/nofollow — all pages should be indexable.
@@ -96,6 +102,7 @@ export function useDocumentMeta(meta: DocumentMeta) {
     }
 
     return () => {
+      cleanupCanonical();
       document.querySelectorAll('script[data-seo="vionews"]').forEach(el => el.remove());
     };
   }, [meta.title, meta.description, meta.canonical, meta.ogType, meta.ogImage, meta.jsonLd, meta.noindex]);

@@ -7,7 +7,7 @@ import { TrendingNews } from "@/components/TrendingNews";
 import { useCategoryNews, NewsArticle, categoryDisplayName } from "@/hooks/useNews";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useDocumentMeta } from "@/hooks/useDocumentMeta";
+import { useDocumentMeta, buildBreadcrumbJsonLd } from "@/hooks/useDocumentMeta";
 
 const categoryMeta: Record<string, { color: string; title: string; description: string }> = {
   world: {
@@ -93,16 +93,25 @@ export default function CategoryPage() {
   const location = useLocation();
   const [visibleCount, setVisibleCount] = useState(ARTICLES_PER_PAGE);
 
-  const categorySlug = slug || location.pathname.replace('/', '');
+  // Derive category slug robustly:
+  // - /world            → "world"
+  // - /category/world   → "world" (from useParams slug)
+  // - handles trailing slashes and query strings
+  const categorySlug = slug || location.pathname.replace(/^\//, "").split("/")[0].split("?")[0].replace(/\/$/, "");
   const displayName = categoryDisplayName[categorySlug] || categorySlug;
   const meta = categoryMeta[categorySlug];
+  const canonicalUrl = `https://vionews.in/${categorySlug}`;
 
   const { data: categoryArticles, isLoading, error } = useCategoryNews(categorySlug);
 
   useDocumentMeta({
     title: meta?.title || `${displayName} News | VioNews`,
     description: meta?.description || `Latest ${displayName.toLowerCase()} news on VioNews.`,
-    canonical: `https://vionews.in/${categorySlug}`,
+    canonical: canonicalUrl,
+    jsonLd: buildBreadcrumbJsonLd([
+      { name: "Home", url: "https://vionews.in/" },
+      { name: `${displayName} News`, url: canonicalUrl },
+    ]),
   });
 
   const totalArticles = categoryArticles?.length || 0;
