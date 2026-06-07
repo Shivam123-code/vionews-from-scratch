@@ -117,7 +117,7 @@ export default function SearchPage() {
           </p>
         )}
 
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           <div className="lg:col-span-2">
             {isLoading ? (
               <div className="space-y-4">{[...Array(5)].map((_, i) => <ArticleSkeleton key={i} />)}</div>

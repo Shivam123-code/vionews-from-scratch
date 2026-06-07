@@ -22,8 +22,7 @@ function CategoryBlock({ title, slug, color }: CategoryBlockProps) {
           <div className={`w-1 h-6 ${color} rounded-full`} />
           <h2 className="font-bold text-xl">{title}</h2>
         </div>
-        <div className="grid md:grid-cols-2 gap-4">
-          <Skeleton className="aspect-[4/3]" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-3">
             <Skeleton className="h-24" />
             <Skeleton className="h-24" />
@@ -47,7 +46,7 @@ function CategoryBlock({ title, slug, color }: CategoryBlockProps) {
           More →
         </Link>
       </div>
-      <div className="grid md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Main article */}
         <Link
           to={`/${mainArticle.categorySlug}/${mainArticle.slug}`}

@@ -33,9 +33,9 @@ export function Footer() {
   return (
     <footer style={{ backgroundColor: 'hsl(var(--header-bg))', color: 'hsl(var(--header-fg))' }} className="mt-12">
       <div className="container py-8 md:py-12">
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10">
           {/* Brand */}
-          <div className="col-span-2 lg:col-span-1">
+          <div className="col-span-1 sm:col-span-2 lg:col-span-1">
             <Link to="/" className="flex items-center gap-1.5 mb-4">
               <Zap className="h-7 w-7 text-logo fill-logo" />
               <span className="text-2xl font-black tracking-tight">
@@ -100,18 +100,18 @@ export function Footer() {
           </div>
 
           {/* Newsletter */}
-          <div className="col-span-2 lg:col-span-1">
+          <div className="col-span-1 sm:col-span-2 lg:col-span-1">
             <h3 className="font-bold text-lg mb-4">Newsletter</h3>
             <p className="text-sm mb-4" style={{ color: 'hsl(var(--header-fg) / 0.6)' }}>
               Get the latest news delivered to your inbox daily.
             </p>
-            <div className="flex gap-2">
+            <div className="flex flex-col xs:flex-row gap-2">
               <div className="relative flex-1">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
                   type="email"
                   placeholder="Your email"
-                  className="w-full pl-10 pr-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   style={{
                     backgroundColor: 'hsl(var(--header-fg) / 0.1)',
                     borderColor: 'hsl(var(--header-fg) / 0.2)',
@@ -119,7 +119,7 @@ export function Footer() {
                   }}
                 />
               </div>
-              <button className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium text-sm hover:bg-primary/90 transition-colors">
+              <button className="w-full xs:w-auto px-4 py-2.5 bg-primary text-primary-foreground rounded-lg font-medium text-sm hover:bg-primary/90 transition-colors whitespace-nowrap">
                 Subscribe
               </button>
             </div>

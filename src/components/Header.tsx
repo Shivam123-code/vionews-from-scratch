@@ -24,45 +24,49 @@ export function Header() {
       navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
       setIsSearchOpen(false);
       setSearchQuery("");
+      setIsMobileMenuOpen(false);
     }
   };
 
+  const closeMobileMenu = () => setIsMobileMenuOpen(false);
+
   return (
-    <header className="sticky top-0 z-50" style={{ backgroundColor: 'hsl(var(--header-bg))' }}>
+    <header className="sticky top-0 z-50 w-full" style={{ backgroundColor: 'hsl(var(--header-bg))' }}>
       {/* Top bar */}
-      <div className="container flex items-center justify-between py-4">
+      <div className="container flex items-center justify-between py-3 md:py-4 gap-2">
         {/* Mobile menu button */}
         <button
-          className="lg:hidden p-2 -ml-2"
+          className="lg:hidden p-2 -ml-1 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-md transition-colors"
           style={{ color: 'hsl(var(--header-fg))' }}
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           aria-label="Toggle menu"
+          aria-expanded={isMobileMenuOpen}
         >
           {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
 
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-1">
+        <Link to="/" className="flex items-center gap-1 shrink-0" onClick={closeMobileMenu}>
           <span className="text-logo">
-            <Zap className="h-6 w-6 md:h-7 md:w-7 fill-logo" />
+            <Zap className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 fill-logo" />
           </span>
-          <span className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight">
+          <span className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-black tracking-tight">
             <span className="text-logo">Vio</span>
             <span style={{ color: 'hsl(var(--header-fg))' }}>News</span>
           </span>
         </Link>
 
         {/* Right actions */}
-        <div className="flex items-center gap-2 md:gap-4">
+        <div className="flex items-center gap-1 md:gap-3">
           <button
-            className="p-2 rounded-full transition-colors"
+            className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full transition-colors"
             style={{ color: 'hsl(var(--header-fg) / 0.7)' }}
-            onClick={() => setIsSearchOpen(!isSearchOpen)}
+            onClick={() => { setIsSearchOpen(!isSearchOpen); setIsMobileMenuOpen(false); }}
             aria-label="Search"
           >
             <Search className="h-5 w-5" />
           </button>
-          <Button size="sm" className="hidden sm:inline-flex" asChild>
+          <Button size="sm" className="hidden sm:inline-flex text-xs md:text-sm px-2 md:px-3" asChild>
             <a href="https://x.com/vionewsbusiness" target="_blank" rel="noopener noreferrer">
               Follow on 𝕏
             </a>
@@ -72,15 +76,15 @@ export function Header() {
 
       {/* Search bar */}
       {isSearchOpen && (
-        <form onSubmit={handleSearch} className="container pb-4">
+        <form onSubmit={handleSearch} className="container pb-3 md:pb-4">
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 h-4 w-4 md:h-5 md:w-5 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search news..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-background rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+              className="w-full pl-10 md:pl-12 pr-4 py-2.5 md:py-3 bg-background rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-primary text-foreground text-sm md:text-base"
               autoFocus
             />
           </div>
@@ -94,7 +98,7 @@ export function Header() {
             <li>
               <Link
                 to="/"
-                className={`nav-link px-4 py-2 text-sm whitespace-nowrap ${location.pathname === '/' ? 'active' : ''}`}
+                className={`nav-link px-3 xl:px-4 py-2 text-sm whitespace-nowrap ${location.pathname === '/' ? 'active' : ''}`}
               >
                 Latest
               </Link>
@@ -103,7 +107,7 @@ export function Header() {
               <li key={category.name}>
                 <Link
                   to={category.href}
-                  className={`nav-link px-4 py-2 text-sm whitespace-nowrap ${location.pathname === category.href ? 'active' : ''}`}
+                  className={`nav-link px-3 xl:px-4 py-2 text-sm whitespace-nowrap ${location.pathname === category.href ? 'active' : ''}`}
                 >
                   {category.name}
                 </Link>
@@ -115,30 +119,41 @@ export function Header() {
 
       {/* Mobile Navigation */}
       {isMobileMenuOpen && (
-        <nav className="lg:hidden border-t" style={{ borderColor: 'hsl(var(--header-fg) / 0.1)', backgroundColor: 'hsl(var(--header-bg))' }}>
-          <ul className="container py-4 space-y-1">
-            <li>
-              <Link
-                to="/"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block px-4 py-3 rounded-lg transition-colors"
-                style={{ color: 'hsl(var(--header-fg) / 0.8)' }}
+        <nav
+          className="lg:hidden border-t"
+          style={{ borderColor: 'hsl(var(--header-fg) / 0.1)', backgroundColor: 'hsl(var(--header-bg))' }}
+        >
+          <ul className="container py-2 space-y-0.5">
+            {[{ name: 'Latest', href: '/' }, ...categories].map((item) => {
+              const isActive = location.pathname === item.href;
+              return (
+                <li key={item.name}>
+                  <Link
+                    to={item.href}
+                    onClick={closeMobileMenu}
+                    className="flex items-center px-3 py-3 rounded-lg transition-colors min-h-[44px] text-sm font-medium"
+                    style={{
+                      color: isActive ? 'hsl(var(--header-fg))' : 'hsl(var(--header-fg) / 0.7)',
+                      backgroundColor: isActive ? 'hsl(var(--header-fg) / 0.08)' : 'transparent',
+                    }}
+                  >
+                    {item.name}
+                  </Link>
+                </li>
+              );
+            })}
+            {/* Follow on X — only on very small screens where the button is hidden */}
+            <li className="sm:hidden pt-1 pb-2 px-1">
+              <a
+                href="https://x.com/vionewsbusiness"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={closeMobileMenu}
+                className="flex items-center justify-center w-full py-2.5 px-4 bg-primary text-primary-foreground rounded-lg text-sm font-medium transition-colors hover:bg-primary/90"
               >
-                Latest
-              </Link>
+                Follow on 𝕏
+              </a>
             </li>
-            {categories.map((category) => (
-              <li key={category.name}>
-                <Link
-                  to={category.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block px-4 py-3 rounded-lg transition-colors"
-                  style={{ color: 'hsl(var(--header-fg) / 0.8)' }}
-                >
-                  {category.name}
-                </Link>
-              </li>
-            ))}
           </ul>
         </nav>
       )}

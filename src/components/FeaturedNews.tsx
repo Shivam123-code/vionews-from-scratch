@@ -74,14 +74,14 @@ export function FeaturedNews() {
   if (isLoading) {
     return (
       <section>
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-          <div className="md:col-span-1 lg:col-span-1 order-2 md:order-1 lg:order-1 space-y-3 md:space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          <div className="md:col-span-1 lg:col-span-1 order-2 md:order-1 space-y-3 md:space-y-4">
             {[...Array(5)].map((_, i) => (
               <SideStorySkeleton key={i} />
             ))}
           </div>
-          <div className="md:col-span-1 lg:col-span-2 order-1 md:order-2 lg:order-2">
-            <Skeleton className="aspect-[16/10] lg:aspect-auto lg:h-full min-h-[250px] md:min-h-[300px] lg:min-h-[400px] rounded-lg" />
+          <div className="md:col-span-1 lg:col-span-2 order-1 md:order-2">
+            <Skeleton className="aspect-[16/9] md:aspect-[16/10] lg:aspect-auto lg:h-full min-h-[220px] md:min-h-[300px] lg:min-h-[400px] rounded-lg" />
           </div>
         </div>
       </section>
@@ -103,21 +103,14 @@ export function FeaturedNews() {
 
   return (
     <section>
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-        {/* Side stories */}
-        <div className="md:col-span-1 lg:col-span-1 order-2 md:order-1 lg:order-1 space-y-3 md:space-y-4">
-          {sideNews.map((news) => (
-            <SideStoryCard key={news.id} article={news} />
-          ))}
-        </div>
-
-        {/* Main featured story */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+        {/* Main featured story — shows first on mobile */}
         <div className="md:col-span-1 lg:col-span-2 order-1 md:order-2 lg:order-2">
           <Link
             to={`/${mainArticle.categorySlug}/${mainArticle.slug}`}
             className="news-card group cursor-pointer block h-full"
           >
-            <div className="relative aspect-[16/10] lg:aspect-auto lg:h-full min-h-[250px] md:min-h-[300px] lg:min-h-[400px] overflow-hidden rounded-lg">
+            <div className="relative aspect-[16/9] md:aspect-[16/10] lg:aspect-auto lg:h-full min-h-[220px] md:min-h-[300px] lg:min-h-[400px] overflow-hidden rounded-lg">
               <img
                 src={mainArticle.image || featuredImg}
                 alt={mainArticle.title}
@@ -127,26 +120,33 @@ export function FeaturedNews() {
                 }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6 text-white">
-                <span className="news-category-badge bg-primary text-primary-foreground mb-3">
+              <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 md:p-6 text-white">
+                <span className="news-category-badge bg-primary text-primary-foreground mb-2 md:mb-3">
                   {mainArticle.category}
                 </span>
-                <h1 className="news-headline text-xl sm:text-2xl md:text-3xl lg:text-4xl mb-2 md:mb-3">
+                <h1 className="news-headline text-lg sm:text-xl md:text-3xl lg:text-4xl mb-1 md:mb-3">
                   {mainArticle.title}
                 </h1>
-                <p className="text-white/80 text-sm md:text-base line-clamp-2 mb-4">
+                <p className="text-white/80 text-xs sm:text-sm md:text-base line-clamp-2 mb-2 md:mb-4 hidden sm:block">
                   {mainArticle.excerpt}
                 </p>
-                <div className="flex items-center gap-4 text-sm text-white/70">
+                <div className="flex items-center gap-3 md:gap-4 text-xs sm:text-sm text-white/70">
                   <span className="flex items-center gap-1">
-                    <Clock className="h-4 w-4" />
+                    <Clock className="h-3 w-3 md:h-4 md:w-4" />
                     {mainArticle.time}
                   </span>
-                  <span>By {mainArticle.source || mainArticle.author}</span>
+                  <span className="hidden sm:inline">By {mainArticle.source || mainArticle.author}</span>
                 </div>
               </div>
             </div>
           </Link>
+        </div>
+
+        {/* Side stories */}
+        <div className="md:col-span-1 lg:col-span-1 order-2 md:order-1 lg:order-1 space-y-2 md:space-y-4">
+          {sideNews.map((news) => (
+            <SideStoryCard key={news.id} article={news} />
+          ))}
         </div>
       </div>
     </section>

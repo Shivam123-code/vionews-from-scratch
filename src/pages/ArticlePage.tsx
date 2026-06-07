@@ -292,7 +292,7 @@ export default function ArticlePage() {
           <span className="text-foreground line-clamp-1 min-w-0">{article.title}</span>
         </nav>
 
-        <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           <article className="lg:col-span-2 min-w-0">
             <Link to={`/${article.categorySlug}`} className={`news-category-badge ${categoryColor} text-white mb-4 inline-block`}>
               {article.category}
