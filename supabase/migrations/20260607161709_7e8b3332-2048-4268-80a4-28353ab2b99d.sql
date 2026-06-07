@@ -1,0 +1,1 @@
+UPDATE public.articles SET allow_indexing = true WHERE allow_indexing = false OR allow_indexing IS NULL;
