@@ -438,6 +438,9 @@ Deno.serve(async (req) => {
                   metaDescription = (seoArgs.meta_description || metaDescription).substring(0, 155);
                   slug = cleanSlug(seoArgs.slug || slug);
                   keywords = seoArgs.keywords || keywords;
+                  if (seoArgs.category && VALID_CATEGORIES.has(String(seoArgs.category).toLowerCase())) {
+                    aiCategory = String(seoArgs.category).toLowerCase();
+                  }
                 }
               } catch { /* use defaults */ }
 
