@@ -399,6 +399,7 @@ Deno.serve(async (req) => {
           let slug = cleanSlug(article.title.substring(0, 80));
           let keywords: string[] = [category];
           let faq: { question: string; answer: string }[] = [];
+          let aiCategory: string | null = null;
 
           if (openrouterApiKey) {
             try {
