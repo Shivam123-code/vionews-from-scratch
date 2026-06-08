@@ -71,13 +71,14 @@ function buildSeoPrompt(title: string, description: string, category: string): s
 
 TOPIC: ${title}
 SUMMARY: ${description}
-CATEGORY: ${category}
+SOURCE CATEGORY (may be wrong): ${category}
 
 Requirements:
-- seo_title: Exactly 50-60 characters, keyword-rich, compelling for search results
+- seo_title: 60-90 characters, keyword-rich, compelling for search results. Do NOT truncate mid-word.
 - meta_description: Exactly 150-155 characters, includes primary keyword, compelling click-through
 - slug: Lowercase, hyphenated, clean URL slug. Example format: openai-releases-gpt5-march-2025. NO numbers or special characters at the end. NO trailing hyphens.
-- keywords: Array of exactly 5-7 relevant keywords/phrases for this article`;
+- keywords: Array of exactly 5-7 relevant keywords/phrases for this article
+- category: Assign the most accurate category from: world, technology, business, politics, sports. Base it on article content, not source category. Government/law enforcement/elections → politics. International/war/diplomacy → world. Companies/markets/economy → business. Gadgets/software/AI/science → technology. Games/matches/athletes → sports.`;
 }
 
 function buildFaqPrompt(title: string, content: string, category: string): string {
