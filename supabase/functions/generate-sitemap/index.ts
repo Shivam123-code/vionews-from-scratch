@@ -82,8 +82,9 @@ Deno.serve(async (req) => {
         const catSlug = (a.category_slug || (a.category || '').toLowerCase()).trim();
         const articleUrl = `${SITE_URL}/${catSlug}/${a.slug}`;
         const pubDate = a.published_at ? new Date(a.published_at).toISOString() : new Date().toISOString();
-        // Use the full title — never truncate
-        const rawTitle = (a.seo_title || a.title || '').trim();
+        // Use the full original title — never truncate.
+        // seo_title can be shorter (SEO-optimized) so prefer `title` for sitemaps.
+        const rawTitle = (a.title || a.seo_title || '').trim();
         const title = sanitizeXmlTitle(rawTitle);
         const kwArray = Array.isArray(a.keywords) ? a.keywords.filter((k: string) => k && k.trim()) : [];
         const keywords = kwArray.length > 0
