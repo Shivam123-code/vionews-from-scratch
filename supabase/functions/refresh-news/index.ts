@@ -492,9 +492,10 @@ Deno.serve(async (req) => {
           slug = makeUniqueSlug(slug, existingSlugs);
           existingSlugs.add(slug);
 
-          // Smart re-categorization: override newsdata.io's label when our
-          // keyword scoring detects a stronger category signal
-          const correctedCategory = recategorize(article.title, article.description || '', category);
+          // Smart re-categorization: AI-assigned category (from SEO prompt)
+          // takes precedence; fall back to keyword scoring; finally the API label.
+          const correctedCategory = aiCategory
+            ?? recategorize(article.title, article.description || '', category);
 
           const articleRecord = {
             id: article.article_id,
