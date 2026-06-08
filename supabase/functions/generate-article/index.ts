@@ -50,6 +50,8 @@ TOPIC: ${title}
 SUMMARY: ${excerpt}
 CATEGORY: ${category || 'World News'}
 
+Assign the most accurate category from: world, technology, business, politics, sports. Base it on article content, not source category. Government/law enforcement/elections → politics. International/war/diplomacy → world. Companies/markets/economy → business. Gadgets/software/AI/science → technology. Games/matches/athletes → sports.
+
 Write exactly 4 paragraphs (400-500 words total):
 Paragraph 1: Key facts — what happened, who is involved, when, and where.
 Paragraph 2: Background and context — why this is happening, relevant history.
