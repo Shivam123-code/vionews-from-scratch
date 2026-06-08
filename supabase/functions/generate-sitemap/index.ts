@@ -24,28 +24,20 @@ const STATIC_PAGES = [
 ];
 
 /**
- * Fix mojibake: UTF-8 smart quotes/dashes that were decoded as Latin-1.
- * e.g. the RIGHT SINGLE QUOTATION MARK (U+2019, bytes E2 80 99) gets
- * stored/served as the 3-character sequence â€™ when interpreted as Latin-1.
+ * Sanitize a title for inclusion in XML:
+ * - Normalize smart quotes/dashes to ASCII equivalents
+ * - Escape XML-reserved chars
+ * No truncation — full title preserved.
  */
-function fixEncoding(str: string): string {
+function sanitizeXmlTitle(str: string): string {
   return str
-    // â€™  →  '  (right single quote U+2019)
-    .replace(/â€™/g, "'")
-    // â€˜  →  '  (left single quote U+2018)
-    .replace(/â€˜/g, "'")
-    // â€œ  →  "  (left double quote U+201C)
-    .replace(/â€œ/g, '"')
-    // â€  →  "  (right double quote U+201D — note: bare â€ with trailing non-ASCII)
-    .replace(/â€(?=[^˜œ™\u2018\u2019\u201c\u201d]|$)/g, '"')
-    // â€"  →  –  (en dash U+2013)
-    .replace(/â€"/g, '-')
-    // â€"  →  —  (em dash U+2014)
-    .replace(/â€"/g, '-')
-    // â€¦  →  …  (ellipsis U+2026)
-    .replace(/â€¦/g, '...')
-    // Catch-all: strip remaining Ã/â sequences that are unrecognised mojibake
-    .replace(/[Ã][^\s]/g, '')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/[\u2013\u2014]/g, '-')
+    .replace(/\u2026/g, '...')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
     .trim();
 }
 
@@ -90,10 +82,13 @@ Deno.serve(async (req) => {
         const catSlug = (a.category_slug || (a.category || '').toLowerCase()).trim();
         const articleUrl = `${SITE_URL}/${catSlug}/${a.slug}`;
         const pubDate = a.published_at ? new Date(a.published_at).toISOString() : new Date().toISOString();
-        // Fix encoding BEFORE XML-escaping; use the full title — never truncate
+        // Use the full title — never truncate
         const rawTitle = (a.seo_title || a.title || '').trim();
-        const title = escapeXml(fixEncoding(rawTitle));
-        const keywords = (a.keywords || []).join(', ');
+        const title = sanitizeXmlTitle(rawTitle);
+        const kwArray = Array.isArray(a.keywords) ? a.keywords.filter((k: string) => k && k.trim()) : [];
+        const keywords = kwArray.length > 0
+          ? kwArray.join(', ')
+          : (a.category || catSlug || '');
 
         xml += `  <url>\n`;
         xml += `    <loc>${escapeXml(articleUrl)}</loc>\n`;
@@ -113,7 +108,7 @@ Deno.serve(async (req) => {
 
       xml += `</urlset>`;
 
-      return new Response(xml, {
+      return new Response(new TextEncoder().encode(xml), {
         headers: { ...corsHeaders, 'Content-Type': 'application/xml; charset=utf-8' },
       });
     }
@@ -152,7 +147,7 @@ Deno.serve(async (req) => {
 
     xml += `</urlset>`;
 
-    return new Response(xml, {
+    return new Response(new TextEncoder().encode(xml), {
       headers: { ...corsHeaders, 'Content-Type': 'application/xml; charset=utf-8' },
     });
   } catch (error) {
