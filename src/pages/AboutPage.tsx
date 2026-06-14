@@ -12,8 +12,8 @@ const organizationJsonLd = {
   "foundingDate": "2026",
   "description": "Independent English-language digital news platform covering world news, technology, business, politics and sports",
   "publishingPrinciples": "https://vionews.in/about",
-  "sameAs": [
-    "https://forum.vionews.in"
+    "sameAs": [
+    "https://x.com/vionewsbusiness"
   ],
   "knowsAbout": [
     "World News",
