@@ -7,12 +7,24 @@ import { CategorySection } from "@/components/CategorySection";
 import { Footer } from "@/components/Footer";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
+const speakableJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "VioNews — Breaking News & Global Coverage",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [".article-headline", ".article-excerpt", ".about-description"]
+  },
+  "url": "https://vionews.in"
+};
+
 const Index = () => {
   useDocumentMeta({
     title: "VioNews — Breaking News & Global Coverage",
     description: "VioNews delivers breaking news across world events, technology, business, politics and sports — updated every 30 minutes for US readers.",
     canonical: "https://vionews.in",
     ogImage: "https://vionews.in/og-default.png",
+    jsonLd: speakableJsonLd,
   });
 
   return (

@@ -25,12 +25,23 @@ const organizationJsonLd = {
   ]
 };
 
+const speakableJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "About VioNews | Independent Digital News",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [".article-headline", ".article-excerpt", ".about-description"]
+  },
+  "url": "https://vionews.in/about"
+};
+
 export default function AboutPage() {
   useDocumentMeta({
     title: "About VioNews | Independent Digital News",
     description: "VioNews is an independent digital news platform covering world news, technology, business, politics and sports for a global English-speaking audience.",
     canonical: "https://vionews.in/about",
-    jsonLd: organizationJsonLd,
+    jsonLd: [organizationJsonLd, speakableJsonLd],
   });
 
   return (
