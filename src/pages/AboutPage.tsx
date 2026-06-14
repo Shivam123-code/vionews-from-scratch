@@ -3,11 +3,34 @@ import { Footer } from "@/components/Footer";
 import { Link } from "react-router-dom";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "NewsMediaOrganization",
+  "name": "VioNews",
+  "alternateName": ["vionews.in", "Vio News"],
+  "url": "https://vionews.in",
+  "foundingDate": "2026",
+  "description": "Independent English-language digital news platform covering world news, technology, business, politics and sports",
+  "publishingPrinciples": "https://vionews.in/about",
+  "sameAs": [
+    "https://forum.vionews.in"
+  ],
+  "knowsAbout": [
+    "World News",
+    "Technology",
+    "Artificial Intelligence",
+    "Business",
+    "Politics",
+    "Sports"
+  ]
+};
+
 export default function AboutPage() {
   useDocumentMeta({
     title: "About VioNews | Independent Digital News",
     description: "VioNews is an independent digital news platform covering world news, technology, business, politics and sports for a global English-speaking audience.",
     canonical: "https://vionews.in/about",
+    jsonLd: organizationJsonLd,
   });
 
   return (
