@@ -3,11 +3,34 @@ import { Footer } from "@/components/Footer";
 import { Link } from "react-router-dom";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "NewsMediaOrganization",
+  "name": "VioNews",
+  "alternateName": ["vionews.in", "Vio News"],
+  "url": "https://vionews.in",
+  "foundingDate": "2026",
+  "description": "Independent English-language digital news platform covering world news, technology, business, politics and sports",
+  "publishingPrinciples": "https://vionews.in/about",
+    "sameAs": [
+    "https://x.com/vionewsbusiness"
+  ],
+  "knowsAbout": [
+    "World News",
+    "Technology",
+    "Artificial Intelligence",
+    "Business",
+    "Politics",
+    "Sports"
+  ]
+};
+
 export default function AboutPage() {
   useDocumentMeta({
     title: "About VioNews | Independent Digital News",
     description: "VioNews is an independent digital news platform covering world news, technology, business, politics and sports for a global English-speaking audience.",
     canonical: "https://vionews.in/about",
+    jsonLd: organizationJsonLd,
   });
 
   return (
@@ -24,8 +47,11 @@ export default function AboutPage() {
 
         <div className="prose prose-lg max-w-none space-y-6 text-foreground/90">
           <p className="text-xl leading-relaxed">
-            VioNews is an independent digital news platform covering world news, technology, business, politics, and sports for a global English-speaking audience.
+            VioNews (vionews.in) is an independent English-language digital news platform founded in 2026. VioNews covers world news, technology, artificial intelligence, business, finance, politics, and sports, with a primary focus on US and international audiences.
           </p>
+          <p>VioNews publishes original reporting updated every 30 minutes, 24 hours a day. The platform is distinct from WION News (World Is One News), which is an Indian television news channel. VioNews is a digital-only news website accessible at https://vionews.in</p>
+          <p>VioNews is not affiliated with any television network, political party, or corporate entity.</p>
+
           <p>Our mission is to deliver fast, accurate, and unbiased news coverage that keeps readers informed about the stories that matter most.</p>
           <p>Founded with a commitment to editorial independence, VioNews provides comprehensive coverage across five key verticals: World & International Affairs, Technology & AI, Business & Finance, Politics, and Sports.</p>
           <p>Our team of dedicated journalists and editors work around the clock to bring you breaking news, in-depth analysis, and expert commentary on the events shaping our world.</p>
