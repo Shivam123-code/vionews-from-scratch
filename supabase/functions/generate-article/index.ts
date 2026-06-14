@@ -18,7 +18,8 @@ STRICT RULES:
 - Write in third person. Do not address the reader directly.
 - Do not fabricate specific quotes, statistics, or facts not implied by the source.`;
 
-const AI_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+// Groq free API — fast inference, no credits needed
+const AI_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -35,11 +36,11 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      console.error('LOVABLE_API_KEY not configured');
+    const GEMINI_API_KEY = Deno.env.get('GROQ_API_KEY');
+    if (!GEMINI_API_KEY) {
+      console.error('GROQ_API_KEY not configured');
       return new Response(
-        JSON.stringify({ success: false, error: 'AI service not configured' }),
+        JSON.stringify({ success: false, error: 'GROQ_API_KEY secret not set in Supabase' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -69,10 +70,10 @@ Separate paragraphs with double newlines. Do NOT include any headings, bullet po
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Authorization': `Bearer ${GEMINI_API_KEY}`,
           },
           body: JSON.stringify({
-            model: 'google/gemini-3-flash-preview',
+            model: 'llama-3.3-70b-versatile',
             messages: [
               { role: 'system', content: SYSTEM_PROMPT },
               { role: 'user', content: userPrompt },

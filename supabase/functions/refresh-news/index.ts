@@ -36,7 +36,8 @@ const CATEGORY_DISPLAY: Record<string, string> = {
   sports: 'Sports',
 };
 
-const AI_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+// Groq free API — fast inference, no credits needed
+const AI_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 const SYSTEM_PROMPT = `You are a senior news journalist at VioNews, a professional digital news platform for US readers. You write original, factual, engaging news articles.
 
@@ -294,7 +295,7 @@ async function callOpenRouter(apiKey: string, messages: { role: string; content:
       'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: 'google/gemini-3-flash-preview',
+      model: 'llama-3.3-70b-versatile',
       messages,
       max_tokens: maxTokens,
       temperature,
@@ -319,7 +320,7 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get('NEWSDATA_API_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    const openrouterApiKey = Deno.env.get('LOVABLE_API_KEY');
+    const openrouterApiKey = Deno.env.get('GROQ_API_KEY');
 
     if (!apiKey || !supabaseUrl || !supabaseServiceKey) {
       console.error('Missing required environment variables');

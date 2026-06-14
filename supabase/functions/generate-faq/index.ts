@@ -5,7 +5,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-const AI_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+// Groq free API — fast inference, no credits needed
+const AI_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 interface FaqItem { question: string; answer: string }
 
@@ -32,7 +33,7 @@ async function generateFaq(apiKey: string, title: string, excerpt: string, conte
       'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: 'google/gemini-3-flash-preview',
+      model: 'llama-3.3-70b-versatile',
       messages: [{ role: 'user', content: buildPrompt(title, excerpt, content, category) }],
       max_tokens: 900,
       temperature: 0.5,
@@ -60,9 +61,9 @@ Deno.serve(async (req) => {
 
   try {
     const { articleId, title, excerpt, content, category } = await req.json();
-    const apiKey = Deno.env.get('LOVABLE_API_KEY');
+    const apiKey = Deno.env.get('GROQ_API_KEY');
     if (!apiKey) {
-      return new Response(JSON.stringify({ success: false, error: 'AI not configured' }), {
+      return new Response(JSON.stringify({ success: false, error: 'GROQ_API_KEY secret not set in Supabase' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
