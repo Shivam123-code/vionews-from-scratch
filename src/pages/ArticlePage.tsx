@@ -363,6 +363,11 @@ export default function ArticlePage() {
               ))}
             </div>
 
+            <aside className="editorial-note mt-8 p-4 md:p-5 rounded-lg border-l-4 border-primary bg-muted/50 text-sm md:text-base text-foreground/85 leading-relaxed">
+              <strong className="text-foreground">VioNews Editorial Note: </strong>
+              This article represents VioNews's independent reporting on this topic. Our editorial team monitors global news sources to bring you accurate, timely coverage with original analysis.
+            </aside>
+
             {/* FAQ Section */}
             {(() => {
               const activeFaq = faq || article.faq;
