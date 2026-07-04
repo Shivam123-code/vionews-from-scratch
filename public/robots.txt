@@ -1,6 +1,9 @@
 User-agent: *
 Allow: /
 Disallow: /admin
+Disallow: /api/
+Disallow: /api/news/
+Disallow: /api/cloud/
 
 Sitemap: https://vionews.in/sitemap.xml
 Sitemap: https://vionews.in/news-sitemap.xml
